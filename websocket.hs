@@ -1,19 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Control.Monad      (forever)
-import qualified Data.Text          as T
+import qualified Data.Text.Lazy     as T
 import qualified Network.WebSockets as WS
 import           Data.Monoid        ((<>))
 import qualified Data.IORef         as R
+import qualified Text.Blaze         as B
+import qualified Text.Blaze.Html5   as H
+import qualified Text.Blaze.Html5.Attributes as A
+import           Text.Blaze.Html5   ((!))
+import qualified Text.Blaze.Svg11   as S
+import qualified Text.Blaze.Svg11.Attributes as AS
+import           Text.Blaze.Html.Renderer.Text (renderHtml)
+
+circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
+circleSvg cx cy color name = S.svg ! AS.width "100" ! AS.height "100" $ do
+  S.circle ! AS.id_ "bar" ! AS.cx (B.toValue cx) ! AS.cy (B.toValue cy) ! AS.r "40" ! AS.stroke "green"
+           ! AS.strokeWidth "4"
+           ! AS.fill color
+           ! AS.onmouseover ("mouseover(" <> name <> ")")
+           ! AS.onmouseout ("mouseout(" <> name <> ")")
 
 svg :: Bool -> T.Text
-svg over = "<svg width='100' height='100'>\
-\  <circle id='bar' cx='50' cy='50' r='40' stroke='green' stroke-width='4' fill='" <> colour <> "' \
-\          onmouseover='mouseover(this.id)'\
-\          onmouseout='mouseout(this.id)'\
-\/>"
-    where colour = if over then "yellow" else "red"
-
+svg over = renderHtml $ circleSvg 50 50 color "this.id"
+    where color = if over then "yellow" else "red"
 
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
