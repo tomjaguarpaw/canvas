@@ -13,6 +13,8 @@ import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
+import qualified Data.List.NonEmpty as NEL
+import           Data.List.NonEmpty (NonEmpty((:|)))
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -92,32 +94,41 @@ circleSvg cx cy color name =
            ! AS.onmouseout  ("mouseout('" <> name <> "')")
            ! AS.onclick     ("click('" <> name <> "')")
 
+
+makeCanvas :: (Circle, Circle) -> Canvas (Circle, Circle)
+makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle left)
+                           `horiz`
+                           fmap (\ev -> (left, circleHandle ev right)) (circle right)
+
+makeCanvasNEL :: NEL.NonEmpty Circle -> Canvas (NEL.NonEmpty Circle)
+makeCanvasNEL l = case l of a :| []     -> fmap (\ev -> singleton (circleHandle ev a)) (circle a)
+                            a :| (x:xs) -> fmap (\ev -> circleHandle ev a :| (x:xs)) (circle a)
+                                                `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL (x :| xs))
+  where singleton a = a :| []
+
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = (circleMake "id1", circleMake "id2")
-
-      makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle left)
-                                 `horiz`
-                                 fmap (\ev -> (left, circleHandle ev right)) (circle right)
+--  let initialGui = (circleMake "id1", circleMake "id2")
+  let initialGui = circleMake "id1" :| [circleMake "id2", circleMake "id3"]
 
   let loop canvas = do
         msg  <- WS.receiveData conn
         n    <- R.readIORef r
         
         let mNextGui   = handleMessage canvas msg
-            nextCanvas = maybe canvas makeCanvas mNextGui
+            nextCanvas = maybe canvas makeCanvasNEL mNextGui
   
         print msg
         print mNextGui
 
         R.writeIORef r (n + 1)
-        WS.sendTextData conn (render (nextCanvas))
+        WS.sendTextData conn (render nextCanvas)
   
         loop nextCanvas
 
-  loop (makeCanvas initialGui)
+  loop (makeCanvasNEL initialGui)
 
 
 main :: IO ()
