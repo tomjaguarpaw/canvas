@@ -13,8 +13,47 @@ import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 
+data Circle = Circle { cName :: T.Text
+                     , cColor :: S.AttributeValue }
+
+type Message = T.Text
+
+data Canvas a = Canvas [Circle] (Message -> Maybe a)
+
+data CircleEvent = MouseOver | MouseOut
+
+circle :: T.Text -> S.AttributeValue -> Canvas CircleEvent
+circle name color = Canvas [Circle { cName = name, cColor = color }]
+                           (\message -> case T.split (== ',') message
+                                        of [theName, theEvent] ->
+                                             if theName == "name"
+                                             then case theEvent
+                                                  of "mouseover" -> Just MouseOver
+                                                     "mouseout"  -> Just MouseOut
+                                                     _           -> Nothing
+                                             else Nothing
+                                           _ -> Nothing)
+
+horiz :: Canvas a -> Canvas a -> Canvas a
+horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
+                                             (\message -> case xh message of
+                                                 r@(Just x) -> r
+                                                 Nothing -> case yh message of
+                                                   s@(Just y) -> s
+                                                   Nothing -> Nothing)                                                          
+
+handleMessage :: Canvas a -> Message -> Maybe a
+handleMessage (Canvas _ h) = h
+
+render :: Canvas a -> T.Text
+render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (10 * length cs))
+                                          ! AS.height "100" $ do
+  sequence_ (package cs [0..])
+  
+  where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (cColor c) (B.toValue (cName c)))
+
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
-circleSvg cx cy color name = S.svg ! AS.width "100" ! AS.height "100" $ do
+circleSvg cx cy color name = 
   S.circle ! AS.id_ "bar"
            ! AS.cx (B.toValue cx)
            ! AS.cy (B.toValue cy)
