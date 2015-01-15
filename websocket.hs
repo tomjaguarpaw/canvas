@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE Rank2Types #-}
 
 import qualified Data.Text.Lazy     as T
 import qualified Network.WebSockets as WS
@@ -114,13 +115,13 @@ makeCanvasNEL :: NEL.NonEmpty Circle -> Canvas (NEL.NonEmpty Circle)
 makeCanvasNEL l = case ne l of Left a -> fmap (\ev -> singleton (circleHandle ev a)) (circle a)
                                Right (a, xs) -> fmap (\ev -> circleHandle ev a `NEL.cons` xs) (circle a)
                                                 `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL xs)
-  where singleton a = a :| []
 
 makeCanvasNELH :: NEL.NonEmpty (Circle, CircleEvent -> r) -> Canvas (NEL.NonEmpty Circle, r)
 makeCanvasNELH l = case ne l of Left (a, h)   -> fmap (\ev -> (singleton (circleHandle ev a), h ev)) (circle a)
                                 Right ((a, h), xs) -> fmap (\ev -> (circleHandle ev a `NEL.cons` fmap fst xs, h ev)) (circle a)
                                                       `horiz` fmap (\(new, r) -> (a `NEL.cons` new, r)) (makeCanvasNELH xs)
-  where singleton a = a :| []
+
+singleton a = a :| []
 
 
 data Package e b = Package { _pState :: b, _pRender :: Canvas (e, Package e b) }
@@ -143,13 +144,13 @@ horizP p1 p2 = Package { _pState = (_pState p1, _pState p2)
                                     fmap (\(ev, peb) -> (ev, p1 `horizP` peb)) (_pRender p2) }
 
 
-
-{-
-horizNELP :: NEL.NonEmpty (Package e a a) -> Package e (NEL.NonEmpty a) (NEL.NonEmpty a)
-horizNELP l = Package { _pState  = fmap _pState l 
-                      , _pRender = \l' -> case ne l' of
-                        Left a -> 
--}
+traverseNEL :: Functor f =>
+               (forall a b. f a -> f b -> f (a, b))
+               -> NEL.NonEmpty (f a)
+               -> f (NEL.NonEmpty a)
+traverseNEL (**) l = case ne l of               
+  Left fa         -> fmap singleton fa
+  Right (fa, fas) -> fmap (uncurry (NEL.cons)) (fa ** traverseNEL (**) fas)
 
 data Selected = Selected Circle
 
