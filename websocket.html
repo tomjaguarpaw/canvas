@@ -10,14 +10,14 @@ function mouseover(theid)
         return;
     } else {
         currentMouseOver = theid;
-        ws.send("over");
+        ws.send(theid + ",mouseover");
     }
 }
 
 function mouseout(theid)
 {
     currentMouseOver = null;
-    ws.send("out");
+    ws.send(theid + ",mouseout");
 }
 
   if ("WebSocket" in window)

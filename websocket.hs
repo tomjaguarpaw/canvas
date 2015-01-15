@@ -20,13 +20,13 @@ type Message = T.Text
 
 data Canvas a = Canvas [Circle] (Message -> Maybe a)
 
-data CircleEvent = MouseOver | MouseOut
+data CircleEvent = MouseOver | MouseOut deriving Show
 
 circle :: T.Text -> S.AttributeValue -> Canvas CircleEvent
 circle name color = Canvas [Circle { cName = name, cColor = color }]
                            (\message -> case T.split (== ',') message
                                         of [theName, theEvent] ->
-                                             if theName == "name"
+                                             if theName == name
                                              then case theEvent
                                                   of "mouseover" -> Just MouseOver
                                                      "mouseout"  -> Just MouseOut
@@ -37,16 +37,16 @@ circle name color = Canvas [Circle { cName = name, cColor = color }]
 horiz :: Canvas a -> Canvas a -> Canvas a
 horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
                                              (\message -> case xh message of
-                                                 r@(Just x) -> r
+                                                 r@(Just _) -> r
                                                  Nothing -> case yh message of
-                                                   s@(Just y) -> s
+                                                   s@(Just _) -> s
                                                    Nothing -> Nothing)                                                          
 
 handleMessage :: Canvas a -> Message -> Maybe a
 handleMessage (Canvas _ h) = h
 
 render :: Canvas a -> T.Text
-render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (10 * length cs))
+render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (100 * length cs))
                                           ! AS.height "100" $ do
   sequence_ (package cs [0..])
   
@@ -54,29 +54,32 @@ render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (10 * length cs)
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
 circleSvg cx cy color name = 
-  S.circle ! AS.id_ "bar"
-           ! AS.cx (B.toValue cx)
+  S.circle ! AS.cx (B.toValue cx)
            ! AS.cy (B.toValue cy)
            ! AS.r "40"
            ! AS.stroke "black"
            ! AS.strokeWidth "4"
            ! AS.fill color
-           ! AS.onmouseover ("mouseover(" <> name <> ")")
-           ! AS.onmouseout ("mouseout(" <> name <> ")")
-
-svg :: Bool -> T.Text
-svg over = renderHtml $ circleSvg 50 50 color "this.id"
-    where color = if over then "yellow" else "red"
+           ! AS.onmouseover ("mouseover('" <> name <> "')")
+           ! AS.onmouseout ("mouseout('" <> name <> "')")
 
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
+
+  let canvas = circle "id1" "yellow" `horiz` circle "id2" "blue"
+
   forever $ do
     msg  <- WS.receiveData conn
     n    <- R.readIORef r
-    let over = msg == ("over" :: T.Text)
+    
+    let ev = handleMessage canvas msg
+
+    print msg
+    print ev
+
     R.writeIORef r (n + 1)
-    WS.sendTextData conn (svg over)
+    WS.sendTextData conn (render canvas)
 
 main :: IO ()
 main = do
