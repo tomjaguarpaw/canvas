@@ -15,7 +15,11 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
 circleSvg cx cy color name = S.svg ! AS.width "100" ! AS.height "100" $ do
-  S.circle ! AS.id_ "bar" ! AS.cx (B.toValue cx) ! AS.cy (B.toValue cy) ! AS.r "40" ! AS.stroke "green"
+  S.circle ! AS.id_ "bar"
+           ! AS.cx (B.toValue cx)
+           ! AS.cy (B.toValue cy)
+           ! AS.r "40"
+           ! AS.stroke "black"
            ! AS.strokeWidth "4"
            ! AS.fill color
            ! AS.onmouseover ("mouseover(" <> name <> ")")
