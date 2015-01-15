@@ -110,6 +110,13 @@ makeCanvasNEL l = case ne l of Left a -> fmap (\ev -> singleton (circleHandle ev
                                                 `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL xs)
   where singleton a = a :| []
 
+makeCanvasNELH :: NEL.NonEmpty (Circle, CircleEvent -> r) -> Canvas (NEL.NonEmpty Circle, r)
+makeCanvasNELH l = case ne l of Left (a, h)   -> fmap (\ev -> (singleton (circleHandle ev a), h ev)) (circle a)
+                                Right ((a, h), xs) -> fmap (\ev -> (circleHandle ev a `NEL.cons` fmap fst xs, h ev)) (circle a)
+                                                      `horiz` fmap (\(new, r) -> (a `NEL.cons` new, r)) (makeCanvasNELH xs)
+  where singleton a = a :| []
+
+
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
