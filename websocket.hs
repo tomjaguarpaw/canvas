@@ -125,7 +125,7 @@ traverseNEL :: Functor f =>
                -> f (NEL.NonEmpty c)
 traverseNEL (***) l = case ne l of               
   Left fa         -> fmap singleton fa
-  Right (fa, fas) -> fmap (uncurry (NEL.cons)) (fa *** traverseNEL (***) fas)
+  Right (fa, fas) -> fmap (uncurry NEL.cons) (fa *** traverseNEL (***) fas)
 
 data Selected = Selected Circle
 
