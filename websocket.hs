@@ -7,8 +7,6 @@ import qualified Network.WebSockets as WS
 import           Data.Monoid        ((<>))
 import qualified Data.IORef         as R
 import qualified Text.Blaze         as B
-import qualified Text.Blaze.Html5   as H
-import qualified Text.Blaze.Html5.Attributes as A
 import           Text.Blaze.Html5   ((!))
 import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
@@ -16,9 +14,6 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.Profunctor    as P
-import qualified Data.Profunctor.Product as PP
-import qualified Control.Applicative as A
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -102,40 +97,20 @@ circleSvg cx cy color name =
            ! AS.onclick     ("click('" <> name <> "')")
 
 
-makeCanvas :: (Circle, Circle) -> Canvas (Circle, Circle)
-makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle left)
-                           `horiz`
-                           fmap (\ev -> (left, circleHandle ev right)) (circle right)
-
 ne :: NEL.NonEmpty a -> Either a (a, NEL.NonEmpty a)
 ne (a :| []) = Left a
 ne (a :| (a':as)) = Right (a, a' :| as)
 
-makeCanvasNEL :: NEL.NonEmpty Circle -> Canvas (NEL.NonEmpty Circle)
-makeCanvasNEL l = case ne l of Left a -> fmap (\ev -> singleton (circleHandle ev a)) (circle a)
-                               Right (a, xs) -> fmap (\ev -> circleHandle ev a `NEL.cons` xs) (circle a)
-                                                `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL xs)
-
-makeCanvasNELH :: NEL.NonEmpty (Circle, CircleEvent -> r) -> Canvas (NEL.NonEmpty Circle, r)
-makeCanvasNELH l = case ne l of Left (a, h)   -> fmap (\ev -> (singleton (circleHandle ev a), h ev)) (circle a)
-                                Right ((a, h), xs) -> fmap (\ev -> (circleHandle ev a `NEL.cons` fmap fst xs, h ev)) (circle a)
-                                                      `horiz` fmap (\(new, r) -> (a `NEL.cons` new, r)) (makeCanvasNELH xs)
-
+singleton :: a -> NonEmpty a
 singleton a = a :| []
 
 
 data Package e b = Package { _pState :: b, _pRender :: Canvas (e, Package e b) }
-$(L.makeLenses ''Package)
+-- $(L.makeLenses ''Package)
 
 instance Functor (Package e) where
   fmap f p = Package { _pState  = f (_pState p)
                      , _pRender = fmap (L.over L._2 (fmap f)) (_pRender p) }
-
-{-
-instance P.Profunctor (Package e) where
-  dimap f g p = Package { _pState  = g (_pState p)
-                        , _pRender = L.dimap f (fmap (L.over L._2 g)) (_pRender p) }
--}
 
 horizP :: Package e a -> Package e b -> Package e (a, b)
 horizP p1 p2 = Package { _pState = (_pState p1, _pState p2)
@@ -146,11 +121,11 @@ horizP p1 p2 = Package { _pState = (_pState p1, _pState p2)
 
 traverseNEL :: Functor f =>
                (forall a b. f a -> f b -> f (a, b))
-               -> NEL.NonEmpty (f a)
-               -> f (NEL.NonEmpty a)
-traverseNEL (**) l = case ne l of               
+               -> NEL.NonEmpty (f c)
+               -> f (NEL.NonEmpty c)
+traverseNEL (***) l = case ne l of               
   Left fa         -> fmap singleton fa
-  Right (fa, fas) -> fmap (uncurry (NEL.cons)) (fa ** traverseNEL (**) fas)
+  Right (fa, fas) -> fmap (uncurry (NEL.cons)) (fa *** traverseNEL (***) fas)
 
 data Selected = Selected Circle
 
@@ -166,7 +141,7 @@ circlePackage = circlePackage' . circleMake
 selected' :: Selected -> Package CircleEvent Selected
 selected' (Selected c) = Package { _pState  = Selected c
                                  , _pRender = fmap (\ev -> (ev, selected' (Selected ((case ev of MouseClick -> id
-                                                                                                 other      -> circleHandle ev)
+                                                                                                 _          -> circleHandle ev)
                                                                                      c)))) (circle c) }
 
 selected :: T.Text -> Package CircleEvent Selected
@@ -176,7 +151,7 @@ unselected' :: Unselected -> Package CircleEvent Unselected
 unselected' (Unselected c) = Package { _pState  = Unselected c
                                      , _pRender = fmap (\ev -> (ev,
   unselected' (Unselected ((case ev of MouseClick -> id
-                                       other      -> circleHandle ev)
+                                       _          -> circleHandle ev)
                            c)))) (circle c) }
 
 unselected :: T.Text -> Package CircleEvent Unselected
@@ -204,7 +179,7 @@ meow r pc = do
 --        print mNextGui
 
         R.writeIORef r (n + 1)
-        WS.sendTextData conn (render (_pRender nextGui ))
+        WS.sendTextData conn (render (_pRender nextGui))
   
         loop nextGui
 
