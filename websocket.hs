@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import           Control.Monad      (forever)
 import qualified Data.Text.Lazy     as T
 import qualified Network.WebSockets as WS
 import           Data.Monoid        ((<>))
@@ -15,37 +14,53 @@ import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
 
+data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
+data CircleState = CircleState { _csHovered  :: Bool
+                               , _csSelected :: Bool } deriving Show
+
+data GUICircle = GUICircle { gcName  :: T.Text
+                           , gcColor :: T.Text } deriving Show
+
 data Circle = Circle { _cName  :: T.Text
-                     , _cColor :: T.Text } deriving Show
+                     , _cState :: CircleState } deriving Show
 $(L.makeLenses ''Circle)
+$(L.makeLenses ''CircleState)
 
 type Message = T.Text
 
-data Canvas a = Canvas [Circle] (Message -> Maybe a)
+data Canvas a = Canvas [GUICircle] (Message -> Maybe a)
 
 instance Functor Canvas where
   fmap f (Canvas cs h) = Canvas cs ((fmap . fmap) f h)
 
-data CircleEvent = MouseOver | MouseOut deriving Show
-
 circleMake :: T.Text -> Circle
-circleMake n = Circle n "red"
+circleMake n = Circle n (CircleState False False)
 
 circleHandle :: CircleEvent -> Circle -> Circle
-circleHandle MouseOver = L.set cColor "yellow" 
-circleHandle MouseOut  = L.set cColor "red" 
+circleHandle MouseOver  = L.set  (cState.csHovered)  True
+circleHandle MouseOut   = L.set  (cState.csHovered)  False
+circleHandle MouseClick = L.over (cState.csSelected) not
+
+guiCircle :: Circle -> GUICircle
+guiCircle c = GUICircle { gcName  = _cName c
+                        , gcColor = case (L.view (cState.csHovered) c, L.view (cState.csSelected) c)
+                                    of (True, True)   -> "#cc0000"
+                                       (True, False)  -> "#cccccc"
+                                       (False, True)  -> "#ff0000"
+                                       (False, False) -> "#ffffff" }
 
 circle :: Circle -> Canvas CircleEvent
-circle (Circle name color) = Canvas [Circle { _cName = name, _cColor = color }]
-                           (\message -> case T.split (== ',') message
-                                        of [theName, theEvent] ->
-                                             if theName == name
-                                             then case theEvent
-                                                  of "mouseover" -> Just MouseOver
-                                                     "mouseout"  -> Just MouseOut
-                                                     _           -> Nothing
-                                             else Nothing
-                                           _ -> Nothing)
+circle c@(Circle name _) = Canvas [guiCircle c]
+                                  (\message -> case T.split (== ',') message
+                                               of [theName, theEvent] ->
+                                                    if theName == name
+                                                    then case theEvent
+                                                         of "mouseover" -> Just MouseOver
+                                                            "mouseout"  -> Just MouseOut
+                                                            "click"     -> Just MouseClick
+                                                            _           -> Nothing
+                                                    else Nothing
+                                                  _ -> Nothing)
 
 horiz :: Canvas a -> Canvas a -> Canvas a
 horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
@@ -63,7 +78,7 @@ render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (100 * length cs
                                           ! AS.height "100" $ do
   sequence_ (package cs [0..])
   
-  where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (_cColor c)) (B.toValue (_cName c)))
+  where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (gcColor c)) (B.toValue (gcName c)))
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
 circleSvg cx cy color name = 
@@ -74,7 +89,8 @@ circleSvg cx cy color name =
            ! AS.strokeWidth "4"
            ! AS.fill color
            ! AS.onmouseover ("mouseover('" <> name <> "')")
-           ! AS.onmouseout ("mouseout('" <> name <> "')")
+           ! AS.onmouseout  ("mouseout('" <> name <> "')")
+           ! AS.onclick     ("click('" <> name <> "')")
 
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
