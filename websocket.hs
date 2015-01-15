@@ -28,6 +28,9 @@ instance Functor Canvas where
 
 data CircleEvent = MouseOver | MouseOut deriving Show
 
+circleMake :: T.Text -> Circle
+circleMake n = Circle n "red"
+
 circleHandle :: CircleEvent -> Circle -> Circle
 circleHandle MouseOver = L.set cColor "yellow" 
 circleHandle MouseOut  = L.set cColor "red" 
@@ -77,7 +80,7 @@ meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = (Circle "id1" "yellow", Circle "id2" "blue")
+  let initialGui = (circleMake "id1", circleMake "id2")
 
       makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle left)
                                  `horiz`
