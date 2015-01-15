@@ -117,6 +117,25 @@ makeCanvasNELH l = case ne l of Left (a, h)   -> fmap (\ev -> (singleton (circle
   where singleton a = a :| []
 
 
+data Package e a b = Package { pState :: a, pRender :: a -> Canvas (e, b) }
+
+data Selected = Selected Circle
+
+data Unselected = Unselected Circle
+
+selected :: T.Text -> Package CircleEvent Selected Selected
+selected n = Package { pState  = Selected (L.set (cState.csSelected) True (circleMake n))
+                     , pRender = \(Selected c) -> fmap (\ev -> (ev, Selected ((case ev of MouseClick -> id
+                                                                                          other      -> circleHandle ev)
+                                                                              c))) (circle c) }
+
+unselected :: T.Text -> Package CircleEvent Selected Selected
+unselected n = Package { pState  = Selected (L.set (cState.csSelected) False (circleMake n))
+                       , pRender = \(Selected c) -> fmap (\ev -> (ev, Selected ((case ev of MouseClick -> id
+                                                                                            other      -> circleHandle ev)
+                                                                                c))) (circle c) }
+
+
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
