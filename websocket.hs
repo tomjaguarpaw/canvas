@@ -100,10 +100,14 @@ makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle l
                            `horiz`
                            fmap (\ev -> (left, circleHandle ev right)) (circle right)
 
+ne :: NEL.NonEmpty a -> Either a (a, NEL.NonEmpty a)
+ne (a :| []) = Left a
+ne (a :| (a':as)) = Right (a, a' :| as)
+
 makeCanvasNEL :: NEL.NonEmpty Circle -> Canvas (NEL.NonEmpty Circle)
-makeCanvasNEL l = case l of a :| []     -> fmap (\ev -> singleton (circleHandle ev a)) (circle a)
-                            a :| (x:xs) -> fmap (\ev -> circleHandle ev a :| (x:xs)) (circle a)
-                                                `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL (x :| xs))
+makeCanvasNEL l = case ne l of Left a -> fmap (\ev -> singleton (circleHandle ev a)) (circle a)
+                               Right (a, xs) -> fmap (\ev -> circleHandle ev a `NEL.cons` xs) (circle a)
+                                                `horiz` fmap (\new -> a `NEL.cons` new) (makeCanvasNEL xs)
   where singleton a = a :| []
 
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
