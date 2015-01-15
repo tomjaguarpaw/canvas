@@ -183,7 +183,8 @@ meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = circlePackage "id1" `horizP` circlePackage "id2"
+--  let initialGui = circlePackage "id1" `horizP` circlePackage "id2"
+  let initialGui = traverseNEL horizP (circlePackage "id1" :| [circlePackage "id2", circlePackage "id3"])
 
   let loop gui = do
         msg  <- WS.receiveData conn
