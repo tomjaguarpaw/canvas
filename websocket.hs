@@ -174,20 +174,24 @@ selected = selected' . Selected . circleMake
 
 unselected' :: Unselected -> Package CircleEvent Unselected
 unselected' (Unselected c) = Package { _pState  = Unselected c
-                                   , _pRender = fmap (\ev -> (ev,
+                                     , _pRender = fmap (\ev -> (ev,
   unselected' (Unselected ((case ev of MouseClick -> id
                                        other      -> circleHandle ev)
                            c)))) (circle c) }
 
 unselected :: T.Text -> Package CircleEvent Unselected
-unselected = unselected' . Unselected . circleMake
+unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
 
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
 
 --  let initialGui = circlePackage "id1" `horizP` circlePackage "id2"
-  let initialGui = traverseNEL horizP (selected "id1" :| [circlePackage "id2", circlePackage "id3"])
+  let initialGui = traverseNEL horizP (circlePackage "id1" :| [circlePackage "id2", circlePackage "id3"])
+                   `horizP`
+                   unselected "id4"
+                   `horizP`
+                   selected "id5"
 
   let loop gui = do
         msg  <- WS.receiveData conn
