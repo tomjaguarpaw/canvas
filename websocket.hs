@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 import           Control.Monad      (forever)
 import qualified Data.Text.Lazy     as T
@@ -12,18 +13,27 @@ import           Text.Blaze.Html5   ((!))
 import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
+import qualified Control.Lens       as L
 
-data Circle = Circle { cName :: T.Text
-                     , cColor :: S.AttributeValue }
+data Circle = Circle { _cName  :: T.Text
+                     , _cColor :: T.Text } deriving Show
+$(L.makeLenses ''Circle)
 
 type Message = T.Text
 
 data Canvas a = Canvas [Circle] (Message -> Maybe a)
 
+instance Functor Canvas where
+  fmap f (Canvas cs h) = Canvas cs ((fmap . fmap) f h)
+
 data CircleEvent = MouseOver | MouseOut deriving Show
 
-circle :: T.Text -> S.AttributeValue -> Canvas CircleEvent
-circle name color = Canvas [Circle { cName = name, cColor = color }]
+circleHandle :: CircleEvent -> Circle -> Circle
+circleHandle MouseOver = L.set cColor "yellow" 
+circleHandle MouseOut  = L.set cColor "red" 
+
+circle :: Circle -> Canvas CircleEvent
+circle (Circle name color) = Canvas [Circle { _cName = name, _cColor = color }]
                            (\message -> case T.split (== ',') message
                                         of [theName, theEvent] ->
                                              if theName == name
@@ -50,7 +60,7 @@ render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (100 * length cs
                                           ! AS.height "100" $ do
   sequence_ (package cs [0..])
   
-  where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (cColor c) (B.toValue (cName c)))
+  where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (_cColor c)) (B.toValue (_cName c)))
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
 circleSvg cx cy color name = 
@@ -67,19 +77,29 @@ meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
 
-  let canvas = circle "id1" "yellow" `horiz` circle "id2" "blue"
+  let initialGui = (Circle "id1" "yellow", Circle "id2" "blue")
 
-  forever $ do
-    msg  <- WS.receiveData conn
-    n    <- R.readIORef r
-    
-    let ev = handleMessage canvas msg
+      makeCanvas (left, right) = fmap (\ev -> (circleHandle ev left, right)) (circle left)
+                                 `horiz`
+                                 fmap (\ev -> (left, circleHandle ev right)) (circle right)
 
-    print msg
-    print ev
+  let loop canvas = do
+        msg  <- WS.receiveData conn
+        n    <- R.readIORef r
+        
+        let mNextGui   = handleMessage canvas msg
+            nextCanvas = maybe canvas makeCanvas mNextGui
+  
+        print msg
+        print mNextGui
 
-    R.writeIORef r (n + 1)
-    WS.sendTextData conn (render canvas)
+        R.writeIORef r (n + 1)
+        WS.sendTextData conn (render (nextCanvas))
+  
+        loop nextCanvas
+
+  loop (makeCanvas initialGui)
+
 
 main :: IO ()
 main = do
