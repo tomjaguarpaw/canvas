@@ -157,6 +157,21 @@ unselected' (Unselected c) = Package { _pState  = Unselected c
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
 
+data Radio x o = Chosen x [o] | Unchosen o (Radio x o)
+
+traverseRadio :: Functor f =>
+                 (forall a b. f a -> f b -> f (a, b))
+              -> Radio (f x) (f o)
+              -> f (Radio x o)
+traverseRadio (***) l = case l of
+  Chosen fx []       -> fmap (\x -> Chosen x []) fx
+  Chosen fx (fy:fys) -> fmap (\(x, ys) -> Chosen x (NEL.toList ys)) (fx *** traverseNEL (***) (fy :| fys))
+  Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
+
+fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
+fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
+fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
+
 meow :: R.IORef Int -> WS.PendingConnection -> IO ()
 meow r pc = do
   conn <- WS.acceptRequest pc
