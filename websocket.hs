@@ -105,18 +105,18 @@ singleton :: a -> NonEmpty a
 singleton a = a :| []
 
 
-data Package e b = Package { _pState :: b, _pRender :: Canvas (e, Package e b) }
+data Package e b = Package { _pState :: b, _pRender :: Canvas (e, b, Package e b) }
 -- $(L.makeLenses ''Package)
 
 instance Functor (Package e) where
   fmap f p = Package { _pState  = f (_pState p)
-                     , _pRender = fmap (L.over L._2 (fmap f)) (_pRender p) }
+                     , _pRender = fmap (\(ev, b, p) -> (ev, f b, fmap f p)) (_pRender p) }
 
 horizP :: Package e a -> Package e b -> Package e (a, b)
 horizP p1 p2 = Package { _pState = (_pState p1, _pState p2)
-                       , _pRender = fmap (\(ev, peb) -> (ev, peb `horizP` p2)) (_pRender p1)
+                       , _pRender = fmap (\(ev, b, peb) -> (ev, (b, _pState p2), peb `horizP` p2)) (_pRender p1)
                                     `horiz`
-                                    fmap (\(ev, peb) -> (ev, p1 `horizP` peb)) (_pRender p2) }
+                                    fmap (\(ev, b, peb) -> (ev, (_pState p1, b), p1 `horizP` peb)) (_pRender p2) }
 
 
 traverseNEL :: Functor f =>
@@ -133,26 +133,27 @@ data Unselected = Unselected Circle
 
 circlePackage' :: Circle -> Package CircleEvent Circle
 circlePackage' c = Package { _pState = c
-                           , _pRender = fmap (\ev -> (ev, circlePackage' (circleHandle ev c))) (circle c) }
+                           , _pRender = fmap (\ev -> (ev, (circleHandle ev c), circlePackage' (circleHandle ev c))) (circle c) }
 
 circlePackage :: T.Text -> Package CircleEvent Circle
 circlePackage = circlePackage' . circleMake
 
 selected' :: Selected -> Package CircleEvent Selected
 selected' (Selected c) = Package { _pState  = Selected c
-                                 , _pRender = fmap (\ev -> (ev, selected' (Selected ((case ev of MouseClick -> id
-                                                                                                 _          -> circleHandle ev)
-                                                                                     c)))) (circle c) }
+                                 , _pRender = fmap (\ev -> let new = Selected ((case ev of MouseClick -> id
+                                                                                           _          -> circleHandle ev)
+                                                                               c)
+                                                           in (ev, new, selected' new)) (circle c) }
 
 selected :: T.Text -> Package CircleEvent Selected
 selected = selected' . Selected . circleMake
 
 unselected' :: Unselected -> Package CircleEvent Unselected
 unselected' (Unselected c) = Package { _pState  = Unselected c
-                                     , _pRender = fmap (\ev -> (ev,
-  unselected' (Unselected ((case ev of MouseClick -> id
-                                       _          -> circleHandle ev)
-                           c)))) (circle c) }
+                                     , _pRender = fmap (\ev -> let new = Unselected ((case ev of MouseClick -> id
+                                                                                                 _          -> circleHandle ev)
+                                                                                     c)
+                                                               in (ev, new, unselected' new)) (circle c) }
 
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
@@ -188,7 +189,7 @@ meow r pc = do
         n    <- R.readIORef r
         
         let mNextGui = handleMessage (_pRender gui) msg
-            nextGui = maybe gui snd mNextGui
+            nextGui = maybe gui (L.view L._3) mNextGui
   
         print msg
 --        print mNextGui
