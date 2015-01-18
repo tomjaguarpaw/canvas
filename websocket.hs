@@ -230,6 +230,17 @@ canvasRadio l = case l of
                       `horiz`
                       fmap (\(ev, s') -> (ev, Unchosen u s')) (canvasRadio r)
 
+foldlNEL :: (a -> a -> a) -> NEL.NonEmpty a -> a
+foldlNEL f (x :| xs) = foldl f x xs
+
+horizI :: NEL.NonEmpty (a, a -> Canvas a) -> Canvas (NEL.NonEmpty (a, a -> Canvas a))
+horizI l = case ne l of
+  Left (a, f)         -> fmap (\x -> singleton (x, f)) (f a)
+  Right ((a, f), afs) -> fmap (\x -> (x, f) `NEL.cons` afs) (f a)
+                         `horiz`
+                         fmap (\xs -> (a, f) `NEL.cons` xs) (horizI afs)
+               
+
 
 makePackage :: (a -> Canvas (ev, a)) -> a -> Package ev a
 makePackage f a = Package { _pState = a
