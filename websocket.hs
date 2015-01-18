@@ -5,7 +5,6 @@
 import qualified Data.Text.Lazy     as T
 import qualified Network.WebSockets as WS
 import           Data.Monoid        ((<>))
-import qualified Data.IORef         as R
 import qualified Text.Blaze         as B
 import           Text.Blaze.Html5   ((!))
 import qualified Text.Blaze.Svg11   as S
@@ -251,8 +250,8 @@ radioToList (Chosen x xs) = x : xs
 radioToList (Unchosen x xs) = x : radioToList xs
 
 
-meow :: R.IORef Int -> WS.PendingConnection -> IO ()
-meow r pc = do
+runServer :: WS.PendingConnection -> IO ()
+runServer pc = do
   conn <- WS.acceptRequest pc
 
 --  let initialGui = circlePackage "id1" `horizP` circlePackage "id2"
@@ -272,7 +271,6 @@ meow r pc = do
 
   let loop gui = do
         msg  <- WS.receiveData conn
-        n    <- R.readIORef r
         
         let mNextGui = handleMessage (_pRender gui) msg
             nextGui = maybe gui (L.view L._3) mNextGui
@@ -280,7 +278,6 @@ meow r pc = do
         print msg
 --        print mNextGui
 
-        R.writeIORef r (n + 1)
         WS.sendTextData conn (render (_pRender nextGui))
   
         loop nextGui
@@ -290,5 +287,4 @@ meow r pc = do
 
 main :: IO ()
 main = do
-  r <- R.newIORef 0
-  WS.runServer "0.0.0.0" 9998 (meow r)
+  WS.runServer "0.0.0.0" 9998 runServer
