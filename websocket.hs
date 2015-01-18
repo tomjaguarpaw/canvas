@@ -109,7 +109,7 @@ data Package e b = Package { _pState :: b, _pRender :: Canvas (e, b, Package e b
 
 instance Functor (Package e) where
   fmap f p = Package { _pState  = f (_pState p)
-                     , _pRender = fmap (\(ev, b, p) -> (ev, f b, fmap f p)) (_pRender p) }
+                     , _pRender = fmap (\(ev, b, pa) -> (ev, f b, fmap f pa)) (_pRender p) }
 
 horizP :: Package e a -> Package e b -> Package e (a, b)
 horizP p1 p2 = Package { _pState = (_pState p1, _pState p2)
@@ -183,13 +183,12 @@ canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
 canvasUnselected l = case ne l of
   Left p -> fmap (\ev -> (ev, case ev of
-                             MouseClick -> Right (Chosen (Selected (L.set (cState.csSelected) True c)) [])
+                             MouseClick -> Right (Chosen (selectedOfUnselected p) [])
                              e          -> Left (singleton (unselectedHandle e u)))) (circle c)
     where u@(Unselected c) = p
 
   Right (p, ps) -> fmap (\ev -> (ev, (case ev of
-                                         MouseClick -> Right (Chosen (Selected (L.set (cState.csSelected) True c))
-                                                                     (NEL.toList ps))
+                                         MouseClick -> Right (Chosen (selectedOfUnselected p) (NEL.toList ps))
                                          e          -> Left (unselectedHandle e u
                                                              `NEL.cons` ps)
                                                              ))) (circle c)
@@ -203,6 +202,12 @@ canvasUnselected l = case ne l of
     where u@(Unselected c) = p
 
 
+selectedOfUnselected :: Unselected -> Selected
+selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c)
+
+unselectedOfSelected :: Selected -> Unselected
+unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
+
 canvasRadio :: Radio Selected Unselected
             -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadio l = case l of
@@ -211,33 +216,24 @@ canvasRadio l = case l of
                       `horiz`
                       fmap (\(ev, y') -> (ev, case y' of
                                Left u -> Chosen s (NEL.toList u)
-                               Right ss -> Unchosen (Unselected (L.set (cState.csSelected) False c)) ss))
+                               Right ss -> Unchosen (unselectedOfSelected s) ss))
                            (canvasUnselected ynel)
     where ynel = y :| ys
           ylis = y : ys
-          Selected c = s
             
-
   Unchosen u r     -> fmap (\(ev, s') -> (ev, case ev of
-                                             MouseClick -> Chosen (Selected (L.set (cState.csSelected) True c))
+                                             MouseClick -> Chosen (selectedOfUnselected u)
                                                                   (radioToList
-                                                                   (fmapRadio (\(Selected s) ->
-                                                                                Unselected
-                                                                                (L.set (cState.csSelected) False s))
-                                                                                id r))
-                                             _          -> Unchosen (unselectedHandle ev u) r))
+                                                                   (fmapRadio unselectedOfSelected id r))
+                                             _          -> Unchosen s' r))
                            (unselectedC u)
                       `horiz`
                       fmap (\(ev, s') -> (ev, Unchosen u s')) (canvasRadio r)
 
 
-    where Unselected c = u
-
-
-
 makePackage :: (a -> Canvas (ev, a)) -> a -> Package ev a
 makePackage f a = Package { _pState = a
-                          , _pRender = fmap (\(ev, a) -> (ev, a, makePackage f a)) (f a) }
+                          , _pRender = fmap (\(ev, a') -> (ev, a', makePackage f a')) (f a) }
 
 --  Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
 
