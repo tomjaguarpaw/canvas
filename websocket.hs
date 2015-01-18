@@ -148,12 +148,14 @@ selected' (Selected c) = Package { _pState  = Selected c
 selected :: T.Text -> Package CircleEvent Selected
 selected = selected' . Selected . circleMake
 
+unselectedHandle :: CircleEvent -> Unselected -> Unselected
+unselectedHandle ev (Unselected c) = Unselected ((case ev of MouseClick -> id
+                                                             _          -> circleHandle ev) c)
+
 unselected' :: Unselected -> Package CircleEvent Unselected
-unselected' (Unselected c) = Package { _pState  = Unselected c
-                                     , _pRender = fmap (\ev -> let new = Unselected ((case ev of MouseClick -> id
-                                                                                                 _          -> circleHandle ev)
-                                                                                     c)
-                                                               in (ev, new, unselected' new)) (circle c) }
+unselected' u@(Unselected c) = Package { _pState  = Unselected c
+                                       , _pRender = fmap (\ev -> let new = unselectedHandle ev u
+                                                                 in (ev, new, unselected' new)) (circle c) }
 
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
