@@ -139,10 +139,8 @@ circlePackage :: T.Text -> Package CircleEvent Circle
 circlePackage = circlePackage' . circleMake
 
 selected' :: Selected -> Package CircleEvent Selected
-selected' (Selected c) = Package { _pState  = Selected c
-                                 , _pRender = fmap (\ev -> let new = Selected ((case ev of MouseClick -> id
-                                                                                           _          -> circleHandle ev)
-                                                                               c)
+selected' s@(Selected c) = Package { _pState  = Selected c
+                                   , _pRender = fmap (\ev -> let new = selectedHandle ev s
                                                            in (ev, new, selected' new)) (circle c) }
 
 selected :: T.Text -> Package CircleEvent Selected
@@ -151,6 +149,11 @@ selected = selected' . Selected . circleMake
 unselectedHandle :: CircleEvent -> Unselected -> Unselected
 unselectedHandle ev (Unselected c) = Unselected ((case ev of MouseClick -> id
                                                              _          -> circleHandle ev) c)
+
+selectedHandle :: CircleEvent -> Selected -> Selected
+selectedHandle ev (Selected c) = Selected ((case ev of MouseClick -> id
+                                                       _          -> circleHandle ev) c)
+
 
 unselected' :: Unselected -> Package CircleEvent Unselected
 unselected' u@(Unselected c) = Package { _pState  = Unselected c
@@ -170,6 +173,35 @@ traverseRadio (***) l = case l of
   Chosen fx []       -> fmap (\x -> Chosen x []) fx
   Chosen fx (fy:fys) -> fmap (\(x, ys) -> Chosen x (NEL.toList ys)) (fx *** traverseNEL (***) (fy :| fys))
   Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
+
+canvasUnselected :: NEL.NonEmpty (Package CircleEvent Unselected)
+                   -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
+canvasUnselected l = case ne l of
+  Left p -> fmap (\ev -> (ev, case ev of
+                             MouseClick -> Right (Chosen (Selected (L.set (cState.csSelected) True c)) [])
+                             e          -> Left (singleton (unselectedHandle e u)))) (circle c)
+    where u@(Unselected c) = _pState p
+
+  Right (p, ps) -> fmap (\ev -> (ev, (case ev of
+                                         MouseClick -> Right (Chosen (Selected (L.set (cState.csSelected) True c))
+                                                                     (map _pState (NEL.toList ps)))
+                                         e          -> Left (unselectedHandle e u
+                                                             `NEL.cons`
+                                                             fmap _pState ps)
+                                                             ))) (circle c)
+                   `horiz`
+                   fmap (\(ev, rest) -> (ev, case rest of
+                                            Left u -> Left (_pState p `NEL.cons` u)
+                                            Right u -> Right (Unchosen (_pState p) u)
+                                        )) (canvasUnselected ps)
+
+
+    where u@(Unselected c) = _pState p
+
+
+
+
+--  Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
 
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
 fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
