@@ -65,6 +65,9 @@ circle c@(Circle name _) = Canvas [guiCircle c]
                                                     else Nothing
                                                   _ -> Nothing)
 
+circleI :: Circle -> Canvas (CircleEvent, Circle)
+circleI c = fmap (\ev -> (ev, circleHandle ev c)) (circle c)
+
 horiz :: Canvas a -> Canvas a -> Canvas a
 horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
                                              (\message -> case xh message of
@@ -230,15 +233,12 @@ canvasRadio l = case l of
                       `horiz`
                       fmap (\(ev, s') -> (ev, Unchosen u s')) (canvasRadio r)
 
-foldlNEL :: (a -> a -> a) -> NEL.NonEmpty a -> a
-foldlNEL f (x :| xs) = foldl f x xs
-
-horizI :: NEL.NonEmpty (a, a -> Canvas a) -> Canvas (NEL.NonEmpty (a, a -> Canvas a))
+horizI :: NEL.NonEmpty (a, a -> Canvas (ev, a)) -> Canvas (ev, NEL.NonEmpty (a, a -> Canvas (ev, a)))
 horizI l = case ne l of
-  Left (a, f)         -> fmap (\x -> singleton (x, f)) (f a)
-  Right ((a, f), afs) -> fmap (\x -> (x, f) `NEL.cons` afs) (f a)
+  Left (a, f)         -> fmap (\(ev, a') -> (ev, singleton (a', f))) (f a)
+  Right ((a, f), afs) -> fmap (\(ev, a') -> (ev, (a', f) `NEL.cons` afs)) (f a)
                          `horiz`
-                         fmap (\xs -> (a, f) `NEL.cons` xs) (horizI afs)
+                         fmap (\(ev, xs) -> (ev, (a, f) `NEL.cons` xs)) (horizI afs)
                
 
 
@@ -275,6 +275,8 @@ runServer pc = do
                                                    , Unselected (circleMake "id3")
                                                    , Unselected (circleMake "id4") ])
                                                        
+  let initialGui = makePackage horizI ((circleMake "id1", circleI)
+                                       :| [ (circleMake "id2", circleI) ])
 
   let loop gui = do
         msg  <- WS.receiveData conn
