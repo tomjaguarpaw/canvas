@@ -228,6 +228,10 @@ canvasRadio l = case l of
                                                                                 id r))
                                              _          -> Unchosen (unselectedHandle ev u) r))
                            (unselectedC u)
+                      `horiz`
+                      fmap (\(ev, s') -> (ev, Unchosen u s')) (canvasRadio r)
+
+
     where Unselected c = u
 
 
@@ -252,11 +256,19 @@ meow r pc = do
   conn <- WS.acceptRequest pc
 
 --  let initialGui = circlePackage "id1" `horizP` circlePackage "id2"
+{-
   let initialGui = traverseNEL horizP (circlePackage "id1" :| [circlePackage "id2", circlePackage "id3"])
                    `horizP`
                    unselected "id4"
                    `horizP`
                    selected "id5"
+-}
+
+  let initialGui = makePackage canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+                                                   [ Unselected (circleMake "id2")
+                                                   , Unselected (circleMake "id3")
+                                                   , Unselected (circleMake "id4") ])
+                                                       
 
   let loop gui = do
         msg  <- WS.receiveData conn
