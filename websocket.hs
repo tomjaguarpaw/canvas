@@ -15,6 +15,7 @@ import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Data.List.NonEmpty (NonEmpty((:|)))
 import           Control.Arrow      ((>>>))
+import           Data.Maybe         (fromMaybe)
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -116,13 +117,6 @@ ne (a :| (a':as)) = Right (a, a' :| as)
 singleton :: a -> NonEmpty a
 singleton a = a :| []
 
-
-data Package e b = Package { _pState :: b, _pRender :: Canvas (e, b, Package e b) }
--- $(L.makeLenses ''Package)
-
-instance Functor (Package e) where
-  fmap f p = Package { _pState  = f (_pState p)
-                     , _pRender = fmap (\(ev, b, pa) -> (ev, f b, fmap f pa)) (_pRender p) }
 
 traverseNEL :: Functor f =>
                (forall a b. f a -> f b -> f (a, b))
@@ -282,8 +276,9 @@ canvasRadioO = \case
                            (unselectedC o)
 
 
-canvasRadio :: Radio Selected Unselected -> Canvas (CircleEvent, Radio Selected Unselected)
-canvasRadio = foldl1 horiz
+canvasRadio :: Radio Selected Unselected -> Canvas (Radio Selected Unselected)
+canvasRadio = fmap snd
+              . foldl1 horiz
               . NEL.toList
               . radioToNEL
               . fmapRadio canvasRadioX canvasRadioO
@@ -293,10 +288,6 @@ listToNEL :: [a] -> Maybe (NEL.NonEmpty a)
 listToNEL [] = Nothing
 listToNEL (a:as) = Just (a:|as)
 
-makePackage :: (a -> Canvas (ev, a)) -> a -> Package ev a
-makePackage f a = Package { _pState = a
-                          , _pRender = fmap (\(ev, a') -> (ev, a', makePackage f a')) (f a) }
-
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
 fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
 fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
@@ -305,15 +296,19 @@ radioToNEL :: Radio a a -> NEL.NonEmpty a
 radioToNEL (Chosen x xs) = x :| xs
 radioToNEL (Unchosen x xs) = x `NEL.cons` radioToNEL xs
 
+data Loop f = Loop { runLoop :: f (Loop f) }
+
+runCanvas :: (a -> Canvas a) -> a -> Loop Canvas
+runCanvas f a = Loop (fmap (runCanvas f) (f a))
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = makePackage canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
-                                            [ Unselected (circleMake "id2")
-                                            , Unselected (circleMake "id3")
-                                            , Unselected (circleMake "id4") ])
+  let initialGui = runCanvas canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+                                          [ Unselected (circleMake "id2")
+                                          , Unselected (circleMake "id3")
+                                          , Unselected (circleMake "id4") ])
 {-
   let initialGui = makePackage horizI ((circleMake "id1", circleI)
                                        :| [ (circleMake "id2", circleI) ])
@@ -321,13 +316,13 @@ runServer pc = do
   let loop gui = do
         msg  <- WS.receiveData conn
 
-        let mNextGui = handleMessage (_pRender gui) msg
-            nextGui = maybe gui (L.view L._3) mNextGui
+        let mNextGui = handleMessage (runLoop gui) msg
+            nextGui = fromMaybe gui mNextGui
 
         print msg
 --        print mNextGui
 
-        WS.sendTextData conn (render (_pRender nextGui))
+        WS.sendTextData conn (render (runLoop nextGui))
 
         loop nextGui
 
