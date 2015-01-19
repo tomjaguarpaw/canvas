@@ -86,11 +86,15 @@ handleMessage :: Canvas a -> Message -> Maybe a
 handleMessage (Canvas _ h) = h
 
 render :: Canvas a -> T.Text
-render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (100 * length cs))
-                                          ! AS.height "100" $ do
-  sequence_ (package cs [0..])
+render (Canvas cs _) = renderHtml (documentSvg h w (sequence_ (package cs [0..])))
 
   where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (gcColor c)) (B.toValue (gcName c)))
+        w = 100 * length cs
+        h = 100
+
+documentSvg :: Int -> Int -> S.Svg -> S.Svg
+documentSvg h w = S.svg ! AS.width (B.toValue w)
+                        ! AS.height (B.toValue h)
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
 circleSvg cx cy color name =
