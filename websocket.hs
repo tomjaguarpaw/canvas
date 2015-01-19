@@ -88,11 +88,11 @@ render :: Canvas a -> T.Text
 render (Canvas cs _) = renderHtml $ S.svg ! AS.width (B.toValue (100 * length cs))
                                           ! AS.height "100" $ do
   sequence_ (package cs [0..])
-  
+
   where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (gcColor c)) (B.toValue (gcName c)))
 
 circleSvg :: Int -> Int -> S.AttributeValue -> S.AttributeValue -> S.Svg
-circleSvg cx cy color name = 
+circleSvg cx cy color name =
   S.circle ! AS.cx (B.toValue cx)
            ! AS.cy (B.toValue cy)
            ! AS.r "40"
