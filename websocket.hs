@@ -14,6 +14,7 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Data.List.NonEmpty (NonEmpty((:|)))
+import           Control.Arrow      ((>>>))
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -130,7 +131,7 @@ traverseNEL :: Functor f =>
                (forall a b. f a -> f b -> f (a, b))
                -> NEL.NonEmpty (f c)
                -> f (NEL.NonEmpty c)
-traverseNEL (***) l = case ne l of               
+traverseNEL (***) = ne >>> \case
   Left fa         -> fmap singleton fa
   Right (fa, fas) -> fmap (uncurry NEL.cons) (fa *** traverseNEL (***) fas)
 
@@ -201,19 +202,21 @@ traverseRadio (***) l = fmap fromRadio' $ case toRadio' l of
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
-canvasUnselected l = (L.over (L.mapped.L._2.L._Right)) fromRadio' $ case ne l of
-  Left p -> fmap (\(ev, p') -> (ev, case ev of
-                                   MouseClick -> Right (Chosen1' (selectedOfUnselected p'))
-                                   _          -> Left (singleton p'))) (unselectedC p)
-  Right (p, ps) -> fmap (\(ev, p') -> (ev, (case ev of
-                                               MouseClick -> Right (Chosen' (selectedOfUnselected p) ps)
-                                               _          -> Left (p' `NEL.cons` ps)
-                                           ))) (unselectedC p)
-                   `horiz`
-                   fmap (\(ev, rest) -> (ev, case rest of
-                                            Left r -> Left (p `NEL.cons` r)
-                                            Right r -> Right (Unchosen' p r)
-                                        )) (canvasUnselected ps)
+canvasUnselected = overR'  fromRadio' . cases . ne
+  where overR' = L.over (L.mapped.L._2.L._Right)
+        cases = \case
+          Left p -> fmap (\(ev, p') -> (ev, case ev of
+                                           MouseClick -> Right (Chosen1' (selectedOfUnselected p'))
+                                           _          -> Left (singleton p'))) (unselectedC p)
+          Right (p, ps) -> fmap (\(ev, p') -> (ev, (case ev of
+                                                       MouseClick -> Right (Chosen' (selectedOfUnselected p) ps)
+                                                       _          -> Left (p' `NEL.cons` ps)
+                                                   ))) (unselectedC p)
+                           `horiz`
+                           fmap (\(ev, rest) -> (ev, case rest of
+                                                    Left r -> Left (p `NEL.cons` r)
+                                                    Right r -> Right (Unchosen' p r)
+                                                )) (canvasUnselected ps)
 
 selectedOfUnselected :: Unselected -> Selected
 selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c)
