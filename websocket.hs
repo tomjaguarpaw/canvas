@@ -144,13 +144,16 @@ canvasRadioX :: RadioX Selected Unselected
 canvasRadioX (At ls x rs) = fmap (\(ev, x') -> (ev, stampX (At ls x' rs)))
                                  (selectedC x)
 
+unselect :: Radio Selected Unselected -> [Unselected]
+unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
+
 canvasRadioO :: RadioO Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadioO = \case
   Before rs o os -> fmap (\(ev, n) -> (ev, case ev of
                                             MouseClick ->
                                               stampX (At
-                                                (NEL.toList (radioToNEL (fmapRadio unselectedOfSelected id rs)))
+                                                (unselect rs)
                                                 (selectedOfUnselected n)
                                                 os)
                                             _ ->
@@ -162,7 +165,7 @@ canvasRadioO = \case
                                              stampX (At
                                                os
                                                (selectedOfUnselected n)
-                                               (NEL.toList (radioToNEL (fmapRadio unselectedOfSelected id rs))))
+                                               (unselect rs))
                                            _ ->
                                              stampO (After os n rs)
                                        ))
