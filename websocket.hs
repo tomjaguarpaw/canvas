@@ -173,14 +173,26 @@ unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleM
 
 data Radio x o = Chosen x [o] | Unchosen o (Radio x o)
 
+data Radio' x o = Chosen1' x | Chosen' x (NEL.NonEmpty o) | Unchosen' o (Radio x o)
+
+toRadio' :: Radio x o -> Radio' x o
+toRadio' (Chosen x []) = Chosen1' x
+toRadio' (Chosen x (y:ys)) = Chosen' x (y :| ys)
+toRadio' (Unchosen x rs) = Unchosen' x rs
+
+fromRadio' :: Radio' x o -> Radio x o
+fromRadio' (Chosen1' x) = Chosen x []
+fromRadio' (Chosen' x (y :| ys)) = Chosen x (y:ys)
+fromRadio' (Unchosen' x rs) = Unchosen x rs
+
 traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
               -> f (Radio x o)
-traverseRadio (***) l = case l of
-  Chosen fx []       -> fmap (\x -> Chosen x []) fx
-  Chosen fx (fy:fys) -> fmap (\(x, ys) -> Chosen x (NEL.toList ys)) (fx *** traverseNEL (***) (fy :| fys))
-  Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
+traverseRadio (***) l = fmap fromRadio' $ case toRadio' l of
+  Chosen1' fx      -> fmap (\x -> Chosen1' x) fx
+  Chosen' fx fys   -> fmap (\(x, ys) -> Chosen' x ys) (fx *** traverseNEL (***) fys)
+  Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as) (fo *** traverseRadio (***) fas)
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
