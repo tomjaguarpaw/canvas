@@ -137,8 +137,7 @@ circleC :: Circle -> Canvas (CircleEvent, Circle)
 circleC c = fmap (\ev -> let new = circleHandle ev c in (ev, new)) (circle c)
 
 circlePackage' :: Circle -> Package CircleEvent Circle
-circlePackage' c = Package { _pState = c
-                           , _pRender = fmap (\ev -> (ev, (circleHandle ev c), circlePackage' (circleHandle ev c))) (circle c) }
+circlePackage' = makePackage circleC
 
 circlePackage :: T.Text -> Package CircleEvent Circle
 circlePackage = circlePackage' . circleMake
