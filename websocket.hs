@@ -234,7 +234,7 @@ canvasRadio l = fmap (L.over L._2 fromRadio') $ case toRadio' l of
                                Left u -> Chosen' s u
                                Right ss -> Unchosen' (unselectedOfSelected s) ss))
                            (canvasUnselected ys)
-            
+
   Unchosen' u r -> fmap (\(ev, s') -> (ev, case ev of
                                              MouseClick -> Chosen' (selectedOfUnselected u)
                                                                    (radioToNEL
@@ -250,8 +250,6 @@ horizI l = case ne l of
   Right ((a, f), afs) -> fmap (\(ev, a') -> (ev, (a', f) `NEL.cons` afs)) (f a)
                          `horiz`
                          fmap (\(ev, xs) -> (ev, (a, f) `NEL.cons` xs)) (horizI afs)
-               
-
 
 makePackage :: (a -> Canvas (ev, a)) -> a -> Package ev a
 makePackage f a = Package { _pState = a
@@ -283,21 +281,21 @@ runServer pc = do
                                                    [ Unselected (circleMake "id2")
                                                    , Unselected (circleMake "id3")
                                                    , Unselected (circleMake "id4") ])
-{-                                                       
+{-
   let initialGui = makePackage horizI ((circleMake "id1", circleI)
                                        :| [ (circleMake "id2", circleI) ])
 -}
   let loop gui = do
         msg  <- WS.receiveData conn
-        
+
         let mNextGui = handleMessage (_pRender gui) msg
             nextGui = maybe gui (L.view L._3) mNextGui
-  
+
         print msg
 --        print mNextGui
 
         WS.sendTextData conn (render (_pRender nextGui))
-  
+
         loop nextGui
 
   loop initialGui
