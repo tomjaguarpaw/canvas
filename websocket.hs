@@ -196,18 +196,18 @@ traverseRadio (***) l = fmap fromRadio' $ case toRadio' l of
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
-canvasUnselected l = case ne l of
+canvasUnselected l = (L.over (L.mapped.L._2.L._Right)) fromRadio' $ case ne l of
   Left p -> fmap (\(ev, p') -> (ev, case ev of
-                                   MouseClick -> Right (Chosen (selectedOfUnselected p') [])
+                                   MouseClick -> Right (Chosen1' (selectedOfUnselected p'))
                                    _          -> Left (singleton p'))) (unselectedC p)
   Right (p, ps) -> fmap (\(ev, p') -> (ev, (case ev of
-                                               MouseClick -> Right (Chosen (selectedOfUnselected p) (NEL.toList ps))
+                                               MouseClick -> Right (Chosen' (selectedOfUnselected p) ps)
                                                _          -> Left (p' `NEL.cons` ps)
                                            ))) (unselectedC p)
                    `horiz`
                    fmap (\(ev, rest) -> (ev, case rest of
                                             Left r -> Left (p `NEL.cons` r)
-                                            Right r -> Right (Unchosen p r)
+                                            Right r -> Right (Unchosen' p r)
                                         )) (canvasUnselected ps)
 
 selectedOfUnselected :: Unselected -> Selected
