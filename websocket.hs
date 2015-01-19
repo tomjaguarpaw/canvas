@@ -177,9 +177,12 @@ unselected' = makePackage unselectedC
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
 
-data Radio x o = Chosen x [o] | Unchosen o (Radio x o)
+data Radio x o = Chosen x [o]
+               | Unchosen o (Radio x o)
 
-data Radio' x o = Chosen1' x | Chosen' x (NEL.NonEmpty o) | Unchosen' o (Radio x o)
+data Radio' x o = Chosen1' x
+                | Chosen' x (NEL.NonEmpty o)
+                | Unchosen' o (Radio x o)
 
 toRadio' :: Radio x o -> Radio' x o
 toRadio' (Chosen x []) = Chosen1' x
