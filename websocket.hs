@@ -80,8 +80,7 @@ horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
                                                  r@(Just _) -> r
                                                  Nothing -> case yh message of
                                                    s@(Just _) -> s
-                                                   Nothing -> Nothing)                                                          
-
+                                                   Nothing -> Nothing)
 handleMessage :: Canvas a -> Message -> Maybe a
 handleMessage (Canvas _ h) = h
 
