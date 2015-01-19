@@ -189,14 +189,14 @@ data Radio' x o = Chosen1' x
                 | Unchosen' o (Radio x o)
 
 toRadio' :: Radio x o -> Radio' x o
-toRadio' (Chosen x []) = Chosen1' x
+toRadio' (Chosen x [])     = Chosen1' x
 toRadio' (Chosen x (y:ys)) = Chosen' x (y :| ys)
-toRadio' (Unchosen x rs) = Unchosen' x rs
+toRadio' (Unchosen x rs)   = Unchosen' x rs
 
 fromRadio' :: Radio' x o -> Radio x o
-fromRadio' (Chosen1' x) = Chosen x []
+fromRadio' (Chosen1' x)          = Chosen x []
 fromRadio' (Chosen' x (y :| ys)) = Chosen x (y:ys)
-fromRadio' (Unchosen' x rs) = Unchosen x rs
+fromRadio' (Unchosen' x rs)      = Unchosen x rs
 
 traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
