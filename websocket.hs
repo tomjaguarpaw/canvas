@@ -133,6 +133,9 @@ data Selected = Selected Circle
 
 data Unselected = Unselected Circle
 
+circleC :: Circle -> Canvas (CircleEvent, Circle)
+circleC c = fmap (\ev -> let new = circleHandle ev c in (ev, new)) (circle c)
+
 circlePackage' :: Circle -> Package CircleEvent Circle
 circlePackage' c = Package { _pState = c
                            , _pRender = fmap (\ev -> (ev, (circleHandle ev c), circlePackage' (circleHandle ev c))) (circle c) }
@@ -149,8 +152,7 @@ unselectedC s@(Unselected c) = fmap (\ev -> let new = unselectedHandle ev s
                                            in (ev, new)) (circle c)
 
 selected' :: Selected -> Package CircleEvent Selected
-selected' s = Package { _pState  = s
-                      , _pRender = fmap (\(ev, new) -> (ev, new, selected' new)) (selectedC s) }
+selected' = makePackage selectedC
 
 selected :: T.Text -> Package CircleEvent Selected
 selected = selected' . Selected . circleMake
@@ -165,8 +167,7 @@ selectedHandle ev (Selected c) = Selected ((case ev of MouseClick -> id
 
 
 unselected' :: Unselected -> Package CircleEvent Unselected
-unselected' u = Package { _pState  = u
-                        , _pRender = fmap (\(ev, new) -> (ev, new, unselected' new)) (unselectedC u) }
+unselected' = makePackage unselectedC
 
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
