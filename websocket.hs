@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE LambdaCase #-}
 
 import qualified Data.Text.Lazy     as T
 import qualified Network.WebSockets as WS
@@ -52,16 +53,18 @@ guiCircle c = GUICircle { gcName  = _cName c
                                        (False, True)  -> "#ff0000"
                                        (False, False) -> "#ffffff" }
 
+parseCircleEvent :: T.Text -> Maybe CircleEvent
+parseCircleEvent = \case "mouseover" -> Just MouseOver
+                         "mouseout"  -> Just MouseOut
+                         "click"     -> Just MouseClick
+                         _           -> Nothing
+
 circle :: Circle -> Canvas CircleEvent
 circle c@(Circle name _) = Canvas [guiCircle c]
                                   (\message -> case T.split (== ',') message
                                                of [theName, theEvent] ->
                                                     if theName == name
-                                                    then case theEvent
-                                                         of "mouseover" -> Just MouseOver
-                                                            "mouseout"  -> Just MouseOut
-                                                            "click"     -> Just MouseClick
-                                                            _           -> Nothing
+                                                    then parseCircleEvent theEvent
                                                     else Nothing
                                                   _ -> Nothing)
 
@@ -136,12 +139,6 @@ data Unselected = Unselected Circle
 circleC :: Circle -> Canvas (CircleEvent, Circle)
 circleC c = fmap (\ev -> let new = circleHandle ev c in (ev, new)) (circle c)
 
-circlePackage' :: Circle -> Package CircleEvent Circle
-circlePackage' = makePackage circleC
-
-circlePackage :: T.Text -> Package CircleEvent Circle
-circlePackage = circlePackage' . circleMake
-
 selectedC :: Selected -> Canvas (CircleEvent, Selected)
 selectedC s@(Selected c) = fmap (\ev -> let new = selectedHandle ev s
                                         in (ev, new)) (circle c)
@@ -149,6 +146,12 @@ selectedC s@(Selected c) = fmap (\ev -> let new = selectedHandle ev s
 unselectedC :: Unselected -> Canvas (CircleEvent, Unselected)
 unselectedC s@(Unselected c) = fmap (\ev -> let new = unselectedHandle ev s
                                            in (ev, new)) (circle c)
+
+circlePackage' :: Circle -> Package CircleEvent Circle
+circlePackage' = makePackage circleC
+
+circlePackage :: T.Text -> Package CircleEvent Circle
+circlePackage = circlePackage' . circleMake
 
 selected' :: Selected -> Package CircleEvent Selected
 selected' = makePackage selectedC
