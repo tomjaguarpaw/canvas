@@ -225,25 +225,23 @@ unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False 
 
 canvasRadio :: Radio Selected Unselected
             -> Canvas (CircleEvent, Radio Selected Unselected)
-canvasRadio l = case l of
-  Chosen s []     -> fmap (\(ev, s') -> (ev, Chosen s' [])) (selectedC s)
-  Chosen s (y:ys) -> fmap (\(ev, s') -> (ev, Chosen s' ylis)) (selectedC s)
+canvasRadio l = fmap (L.over L._2 fromRadio') $ case toRadio' l of
+  Chosen1' s    -> fmap (\(ev, s') -> (ev, Chosen1' s')) (selectedC s)
+  Chosen' s ys  -> fmap (\(ev, s') -> (ev, Chosen' s' ys)) (selectedC s)
                       `horiz`
                       fmap (\(ev, y') -> (ev, case y' of
-                               Left u -> Chosen s (NEL.toList u)
-                               Right ss -> Unchosen (unselectedOfSelected s) ss))
-                           (canvasUnselected ynel)
-    where ynel = y :| ys
-          ylis = y : ys
+                               Left u -> Chosen' s u
+                               Right ss -> Unchosen' (unselectedOfSelected s) ss))
+                           (canvasUnselected ys)
             
-  Unchosen u r     -> fmap (\(ev, s') -> (ev, case ev of
-                                             MouseClick -> Chosen (selectedOfUnselected u)
-                                                                  (radioToList
-                                                                   (fmapRadio unselectedOfSelected id r))
-                                             _          -> Unchosen s' r))
+  Unchosen' u r -> fmap (\(ev, s') -> (ev, case ev of
+                                             MouseClick -> Chosen' (selectedOfUnselected u)
+                                                                   (radioToNEL
+                                                                    (fmapRadio unselectedOfSelected id r))
+                                             _          -> Unchosen' s' r))
                            (unselectedC u)
                       `horiz`
-                      fmap (\(ev, s') -> (ev, Unchosen u s')) (canvasRadio r)
+                      fmap (\(ev, s') -> (ev, Unchosen' u s')) (canvasRadio r)
 
 horizI :: NEL.NonEmpty (a, a -> Canvas (ev, a)) -> Canvas (ev, NEL.NonEmpty (a, a -> Canvas (ev, a)))
 horizI l = case ne l of
@@ -264,9 +262,9 @@ fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
 fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
 fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
 
-radioToList :: Radio a a -> [a]
-radioToList (Chosen x xs) = x : xs
-radioToList (Unchosen x xs) = x : radioToList xs
+radioToNEL :: Radio a a -> NEL.NonEmpty a
+radioToNEL (Chosen x xs) = x :| xs
+radioToNEL (Unchosen x xs) = x `NEL.cons` radioToNEL xs
 
 
 runServer :: WS.PendingConnection -> IO ()
@@ -286,10 +284,10 @@ runServer pc = do
                                                    [ Unselected (circleMake "id2")
                                                    , Unselected (circleMake "id3")
                                                    , Unselected (circleMake "id4") ])
-                                                       
+{-                                                       
   let initialGui = makePackage horizI ((circleMake "id1", circleI)
                                        :| [ (circleMake "id2", circleI) ])
-
+-}
   let loop gui = do
         msg  <- WS.receiveData conn
         
