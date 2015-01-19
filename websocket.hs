@@ -47,11 +47,14 @@ circleHandle MouseClick = L.over (cState.csSelected) not
 
 guiCircle :: Circle -> GUICircle
 guiCircle c = GUICircle { gcName  = _cName c
-                        , gcColor = case (L.view (cState.csHovered) c, L.view (cState.csSelected) c)
-                                    of (True, True)   -> "#cc0000"
-                                       (True, False)  -> "#cccccc"
-                                       (False, True)  -> "#ff0000"
-                                       (False, False) -> "#ffffff" }
+                        , gcColor = (circleColor . L.view cState) c }
+
+circleColor :: CircleState -> T.Text
+circleColor c = case (L.view csHovered c, L.view csSelected c)
+                of (True, True)   -> "#cc0000"
+                   (True, False)  -> "#cccccc"
+                   (False, True)  -> "#ff0000"
+                   (False, False) -> "#ffffff"
 
 parseCircleEvent :: T.Text -> Maybe CircleEvent
 parseCircleEvent = \case "mouseover" -> Just MouseOver
