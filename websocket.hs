@@ -194,26 +194,28 @@ data Radio' x o = Chosen1' x
                 | Chosen' x (NEL.NonEmpty o)
                 | Unchosen' o (Radio x o)
 
-data RadioO x' x o = RadioO { roAt     :: o
-                            , roSet    :: o -> Radio x o
-                            , roChoose :: x' -> (x -> o) -> Radio x' o }
-
-data RadioX x o = RadioX { rxAt  :: x
-                         , rxSet :: x -> Radio x o }
-
-type RadioQ x' x o = Either (RadioO x' x o) (RadioX x o)
-
-data RadioZ x o = Before (Radio x o) o [o]
-                | At     [o] x [o]
+data RadioO x o = Before (Radio x o) o [o]
                 | After  [o] o (Radio x o)
 
-radioQhead :: Radio x o -> RadioQ x' x o
-radioQhead (Chosen x os) = Right RadioX { rxAt  = x
-                                        , rxSet = \x' -> Chosen x' os }
-radioQhead (Unchosen o rs) = Left RadioO { roAt     = o
-                                         , roSet    = \o'  -> Unchosen o' rs
-                                         , roChoose = \x' f -> Chosen x'
-                                                  (NEL.toList (unchoose f rs)) }
+data RadioX x o = At [o] x [o]
+
+data NELZ a = NELZ [a] a [a]
+
+consNELZ :: a -> NELZ a -> NELZ a
+consNELZ u (NELZ ls a rs) = NELZ (u:ls) a rs
+
+consRadioO :: o -> RadioO x o -> RadioO x o
+consRadioO u (Before rs o os) = Before (consRadio u rs) o os
+consRadioO u (After os o rs)  = After  (u:os) o rs
+
+consRadioONEL :: x -> NELZ o -> RadioO x o
+consRadioONEL x (NELZ ls a rs) = Before (Chosen x ls) a rs
+
+consRadioX :: o -> RadioX x o -> RadioX x o
+consRadioX o (At os x os') = At (o:os) x os'
+
+consRadio :: o -> Radio x o -> Radio x o
+consRadio o rs = Unchosen o rs
 
 unchoose :: (x -> o) -> Radio x o -> NEL.NonEmpty o
 unchoose f (Chosen x os)   = f x :| os
@@ -241,22 +243,24 @@ traverseRadio (***) = fmap fromRadio' . cases . toRadio'
           Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as)
                                    (fo *** traverseRadio (***) fas)
 
-{-
-canvasRadioQ :: Radio Selected Unselected
-             -> Canvas (CircleEvent, RadioQ Selected Selected Unselected)
-canvasRadioQ = cases . toRadio'
-  where cases = \case
-          Chosen1' s -> fmap (\(ev, s') ->
-                               (ev, radioQhead (fromRadio' (Chosen1' s))))
-                             (selectedC s)
-          Chosen' s ys -> l `horiz` r
-            where l = fmap (\(ev, s') ->
-                             (ev, radioQhead (fromRadio' (Chosen' s' ys))))
-                           (selectedC s)
-                  r = fmap (\(ev, ys') ->
-                             
--}
+duplicateNEL :: NEL.NonEmpty a -> NEL.NonEmpty (NELZ a)
+duplicateNEL = ne >>> \case
+  Left a        -> singleton (NELZ [] a [])
+  Right (a, as) -> NELZ [] a (NEL.toList as)
+                   `NEL.cons` (fmap (a `consNELZ`) (duplicateNEL as))
 
+duplicateRadio' :: Radio' x o -> Radio' (RadioX x o) (RadioO x o)
+duplicateRadio' (Chosen1' x)     = Chosen1' (At [] x [])
+duplicateRadio' (Chosen' x xs)   = Chosen' (At [] x (NEL.toList xs))
+                                           (fmap (x `consRadioONEL`)
+                                                 (duplicateNEL xs))
+duplicateRadio' (Unchosen' o rs) = Unchosen' (After [] o rs) rost
+  where rest = fromRadio' (duplicateRadio' (toRadio' rs))
+        rost = fmapRadio (o `consRadioX`) (o `consRadioO`) rest
+
+listToNEL :: [a] -> Maybe (NEL.NonEmpty a)
+listToNEL [] = Nothing
+listToNEL (a:as) = Just (a:|as)
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
