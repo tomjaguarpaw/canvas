@@ -194,6 +194,27 @@ data Radio' x o = Chosen1' x
                 | Chosen' x (NEL.NonEmpty o)
                 | Unchosen' o (Radio x o)
 
+data RadioO x' x o = RadioO { roAt     :: o
+                            , roSet    :: o -> Radio x o
+                            , roChoose :: x' -> (x -> o) -> Radio x' o }
+
+data RadioX x o = RadioX { rxAt  :: x
+                         , rxSet :: x -> Radio x o }
+
+type RadioQ x' x o = Either (RadioO x' x o) (RadioX x o)
+
+radioQhead :: Radio x o -> RadioQ x' x o
+radioQhead (Chosen x os) = Right RadioX { rxAt  = x
+                                        , rxSet = \x' -> Chosen x' os }
+radioQhead (Unchosen o rs) = Left RadioO { roAt     = o
+                                         , roSet    = \o'  -> Unchosen o' rs
+                                         , roChoose = \x' f -> Chosen x'
+                                                  (NEL.toList (unchoose f rs)) }
+
+unchoose :: (x -> o) -> Radio x o -> NEL.NonEmpty o
+unchoose f (Chosen x os)   = f x :| os
+unchoose f (Unchosen o rs) = o `NEL.cons` unchoose f rs
+
 toRadio' :: Radio x o -> Radio' x o
 toRadio' (Chosen x [])     = Chosen1' x
 toRadio' (Chosen x (y:ys)) = Chosen' x (y :| ys)
