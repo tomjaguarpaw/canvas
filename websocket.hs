@@ -181,6 +181,12 @@ unselected' = makePackage unselectedC
 unselected :: T.Text -> Package CircleEvent Unselected
 unselected = unselected' . Unselected . L.set (cState.csSelected) True . circleMake
 
+selectedOfUnselected :: Unselected -> Selected
+selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c)
+
+unselectedOfSelected :: Selected -> Unselected
+unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
+
 data Radio x o = Chosen x [o]
                | Unchosen o (Radio x o)
 
@@ -227,12 +233,6 @@ canvasUnselected = overR'  fromRadio' . cases . ne
                                                     Left r -> Left (p `NEL.cons` r)
                                                     Right r -> Right (Unchosen' p r)
                                                 )) (canvasUnselected ps)
-
-selectedOfUnselected :: Unselected -> Selected
-selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c)
-
-unselectedOfSelected :: Selected -> Unselected
-unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
 canvasRadio :: Radio Selected Unselected
             -> Canvas (CircleEvent, Radio Selected Unselected)
