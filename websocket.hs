@@ -202,10 +202,13 @@ traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
               -> f (Radio x o)
-traverseRadio (***) l = fmap fromRadio' $ case toRadio' l of
-  Chosen1' fx      -> fmap (\x -> Chosen1' x) fx
-  Chosen' fx fys   -> fmap (\(x, ys) -> Chosen' x ys) (fx *** traverseNEL (***) fys)
-  Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as) (fo *** traverseRadio (***) fas)
+traverseRadio (***) = fmap fromRadio' . cases . toRadio'
+  where cases = \case
+          Chosen1'  fx     -> fmap (\x -> Chosen1' x) fx
+          Chosen'   fx fys -> fmap (\(x, ys) -> Chosen' x ys)
+                                   (fx *** traverseNEL (***) fys)
+          Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as)
+                                   (fo *** traverseRadio (***) fas)
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
