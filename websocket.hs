@@ -199,10 +199,10 @@ canvasUnselected :: NEL.NonEmpty Unselected
 canvasUnselected l = case ne l of
   Left p -> fmap (\(ev, p') -> (ev, case ev of
                                    MouseClick -> Right (Chosen (selectedOfUnselected p') [])
-                                   e          -> Left (singleton p'))) (unselectedC p)
+                                   _          -> Left (singleton p'))) (unselectedC p)
   Right (p, ps) -> fmap (\(ev, p') -> (ev, (case ev of
                                                MouseClick -> Right (Chosen (selectedOfUnselected p) (NEL.toList ps))
-                                               e          -> Left (p' `NEL.cons` ps)
+                                               _          -> Left (p' `NEL.cons` ps)
                                            ))) (unselectedC p)
                    `horiz`
                    fmap (\(ev, rest) -> (ev, case rest of
