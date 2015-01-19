@@ -189,6 +189,7 @@ unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False 
 
 data Radio x o = Chosen x [o]
                | Unchosen o (Radio x o)
+               deriving Show
 
 data Radio' x o = Chosen1' x
                 | Chosen' x (NEL.NonEmpty o)
@@ -196,8 +197,10 @@ data Radio' x o = Chosen1' x
 
 data RadioO x o = Before (Radio x o) o [o]
                 | After  [o] o (Radio x o)
+                deriving Show
 
 data RadioX x o = At [o] x [o]
+                deriving Show
 
 data NELZ a = NELZ [a] a [a]
 
@@ -257,6 +260,9 @@ duplicateRadio' (Chosen' x xs)   = Chosen' (At [] x (NEL.toList xs))
 duplicateRadio' (Unchosen' o rs) = Unchosen' (After [] o rs) rost
   where rest = fromRadio' (duplicateRadio' (toRadio' rs))
         rost = fmapRadio (o `consRadioX`) (o `consRadioO`) rest
+
+duplicateRadio :: Radio x o -> Radio (RadioX x o) (RadioO x o)
+duplicateRadio = fromRadio' . duplicateRadio' . toRadio'
 
 listToNEL :: [a] -> Maybe (NEL.NonEmpty a)
 listToNEL [] = Nothing
