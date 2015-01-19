@@ -63,13 +63,13 @@ parseCircleEvent = \case "mouseover" -> Just MouseOver
                          _           -> Nothing
 
 circle :: Circle -> Canvas CircleEvent
-circle c@(Circle name _) = Canvas [guiCircle c]
-                                  (\message -> case T.split (== ',') message
-                                               of [theName, theEvent] ->
-                                                    if theName == name
-                                                    then parseCircleEvent theEvent
-                                                    else Nothing
-                                                  _ -> Nothing)
+circle c@(Circle name _) = Canvas [guiCircle c] parseMessage
+  where parseMessage message = case T.split (== ',') message
+                               of [theName, theEvent] ->
+                                    if theName == name
+                                    then parseCircleEvent theEvent
+                                    else Nothing
+                                  _ -> Nothing
 
 circleI :: Circle -> Canvas (CircleEvent, Circle)
 circleI c = fmap (\ev -> (ev, circleHandle ev c)) (circle c)
