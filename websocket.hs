@@ -203,6 +203,10 @@ data RadioX x o = RadioX { rxAt  :: x
 
 type RadioQ x' x o = Either (RadioO x' x o) (RadioX x o)
 
+data RadioZ x o = Before (Radio x o) o [o]
+                | At     [o] x [o]
+                | After  [o] o (Radio x o)
+
 radioQhead :: Radio x o -> RadioQ x' x o
 radioQhead (Chosen x os) = Right RadioX { rxAt  = x
                                         , rxSet = \x' -> Chosen x' os }
@@ -236,6 +240,23 @@ traverseRadio (***) = fmap fromRadio' . cases . toRadio'
                                    (fx *** traverseNEL (***) fys)
           Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as)
                                    (fo *** traverseRadio (***) fas)
+
+{-
+canvasRadioQ :: Radio Selected Unselected
+             -> Canvas (CircleEvent, RadioQ Selected Selected Unselected)
+canvasRadioQ = cases . toRadio'
+  where cases = \case
+          Chosen1' s -> fmap (\(ev, s') ->
+                               (ev, radioQhead (fromRadio' (Chosen1' s))))
+                             (selectedC s)
+          Chosen' s ys -> l `horiz` r
+            where l = fmap (\(ev, s') ->
+                             (ev, radioQhead (fromRadio' (Chosen' s' ys))))
+                           (selectedC s)
+                  r = fmap (\(ev, ys') ->
+                             
+-}
+
 
 canvasUnselected :: NEL.NonEmpty Unselected
                    -> Canvas (CircleEvent, Either (NEL.NonEmpty Unselected) (Radio Selected Unselected))
