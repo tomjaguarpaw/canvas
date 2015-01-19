@@ -298,14 +298,14 @@ radioToNEL (Unchosen x xs) = x `NEL.cons` radioToNEL xs
 
 data Loop f = Loop { runLoop :: f (Loop f) }
 
-runCanvas :: (a -> Canvas a) -> a -> Loop Canvas
-runCanvas f a = Loop (fmap (runCanvas f) (f a))
+runF :: Functor f => (a -> f a) -> a -> Loop f
+runF f a = Loop (fmap (runF f) (f a))
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = runCanvas canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+  let initialGui = runF canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
                                           [ Unselected (circleMake "id2")
                                           , Unselected (circleMake "id3")
                                           , Unselected (circleMake "id4") ])
