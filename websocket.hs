@@ -234,6 +234,22 @@ fromRadio' (Chosen1' x)          = Chosen x []
 fromRadio' (Chosen' x (y :| ys)) = Chosen x (y:ys)
 fromRadio' (Unchosen' x rs)      = Unchosen x rs
 
+stampX :: RadioX x o -> Radio x o
+stampX (At [] x rs) = Chosen x rs
+stampX (At (l:ls) x rs) = Unchosen l (stampX (At ls x rs))
+
+appendO :: Radio x o -> [o] -> Radio x o
+appendO (Chosen x os) os'   = Chosen x (os ++ os')
+appendO (Unchosen o rs) os' = Unchosen o (appendO rs os')
+
+prependO :: [o] -> Radio x o -> Radio x o
+prependO [] rs     = rs
+prependO (o:os) rs = Unchosen o (prependO os rs)
+
+stampO :: RadioO x o -> Radio x o
+stampO (Before rs o os) = rs `appendO` (o:os)
+stampO (After os o rs)  = (os ++ [o]) `prependO` rs
+
 traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
@@ -263,6 +279,43 @@ duplicateRadio' (Unchosen' o rs) = Unchosen' (After [] o rs) rost
 
 duplicateRadio :: Radio x o -> Radio (RadioX x o) (RadioO x o)
 duplicateRadio = fromRadio' . duplicateRadio' . toRadio'
+
+canvasRadioX :: RadioX Selected Unselected
+             -> Canvas (CircleEvent, Radio Selected Unselected)
+canvasRadioX (At ls x rs) = fmap (\(ev, x') -> (ev, stampX (At ls x' rs)))
+                                 (selectedC x)
+
+canvasRadioO :: RadioO Selected Unselected
+             -> Canvas (CircleEvent, Radio Selected Unselected)
+canvasRadioO = \case
+  (Before rs o os) -> fmap (\(ev, n) -> (ev, case ev of
+                                            MouseClick ->
+                                              stampX (At
+                                                (NEL.toList (radioToNEL (fmapRadio unselectedOfSelected id rs)))
+                                                (selectedOfUnselected n)
+                                                os)
+                                            _ ->
+                                              stampO (Before rs n os)
+                                        ))
+                           (unselectedC o)
+  (After os o rs) -> fmap (\(ev, n) -> (ev, case ev of
+                                           MouseClick ->
+                                             stampX (At
+                                               os
+                                               (selectedOfUnselected n)
+                                               (NEL.toList (radioToNEL (fmapRadio unselectedOfSelected id rs))))
+                                           _ ->
+                                             stampO (After os n rs)
+                                       ))
+                           (unselectedC o)
+
+
+canvasRadio2 :: Radio Selected Unselected -> Canvas (CircleEvent, Radio Selected Unselected)
+canvasRadio2 = foldl1 horiz
+               . NEL.toList
+               . radioToNEL
+               . fmapRadio canvasRadioX canvasRadioO
+               . duplicateRadio
 
 listToNEL :: [a] -> Maybe (NEL.NonEmpty a)
 listToNEL [] = Nothing
@@ -340,10 +393,10 @@ runServer pc = do
                    selected "id5"
 -}
 
-  let initialGui = makePackage canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
-                                                   [ Unselected (circleMake "id2")
-                                                   , Unselected (circleMake "id3")
-                                                   , Unselected (circleMake "id4") ])
+  let initialGui = makePackage canvasRadio2 (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+                                             [ Unselected (circleMake "id2")
+                                             , Unselected (circleMake "id3")
+                                             , Unselected (circleMake "id4") ])
 {-
   let initialGui = makePackage horizI ((circleMake "id1", circleI)
                                        :| [ (circleMake "id2", circleI) ])
