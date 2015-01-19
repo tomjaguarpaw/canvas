@@ -235,21 +235,21 @@ canvasRadio :: Radio Selected Unselected
             -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadio l = fmap (L.over L._2 fromRadio') $ case toRadio' l of
   Chosen1' s    -> fmap (\(ev, s') -> (ev, Chosen1' s')) (selectedC s)
-  Chosen' s ys  -> fmap (\(ev, s') -> (ev, Chosen' s' ys)) (selectedC s)
-                      `horiz`
-                      fmap (\(ev, y') -> (ev, case y' of
-                               Left u -> Chosen' s u
-                               Right ss -> Unchosen' (unselectedOfSelected s) ss))
-                           (canvasUnselected ys)
+  Chosen' s ys  -> l `horiz` r
+    where l = fmap (\(ev, s') -> (ev, Chosen' s' ys)) (selectedC s)
+          r = fmap (\(ev, y') -> (ev, case y' of
+                                     Left u -> Chosen' s u
+                                     Right ss -> Unchosen' (unselectedOfSelected s) ss))
+                   (canvasUnselected ys)
 
-  Unchosen' u r -> fmap (\(ev, s') -> (ev, case ev of
-                                             MouseClick -> Chosen' (selectedOfUnselected u)
-                                                                   (radioToNEL
-                                                                    (fmapRadio unselectedOfSelected id r))
-                                             _          -> Unchosen' s' r))
-                           (unselectedC u)
-                      `horiz`
-                      fmap (\(ev, s') -> (ev, Unchosen' u s')) (canvasRadio r)
+  Unchosen' u r -> l `horiz` rr
+    where l = fmap (\(ev, s') -> (ev, case ev of
+                                     MouseClick -> Chosen' (selectedOfUnselected u)
+                                                           (radioToNEL
+                                                            (fmapRadio unselectedOfSelected id r))
+                                     _          -> Unchosen' s' r))
+                   (unselectedC u)
+          rr = fmap (\(ev, s') -> (ev, Unchosen' u s')) (canvasRadio r)
 
 horizI :: NEL.NonEmpty (a, a -> Canvas (ev, a)) -> Canvas (ev, NEL.NonEmpty (a, a -> Canvas (ev, a)))
 horizI l = case ne l of
