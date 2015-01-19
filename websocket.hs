@@ -256,8 +256,6 @@ makePackage :: (a -> Canvas (ev, a)) -> a -> Package ev a
 makePackage f a = Package { _pState = a
                           , _pRender = fmap (\(ev, a') -> (ev, a', makePackage f a')) (f a) }
 
---  Unchosen fo fas    -> fmap (\(o, as) -> Unchosen o as) (fo *** traverseRadio (***) fas)
-
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
 fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
 fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
