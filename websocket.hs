@@ -147,7 +147,7 @@ handlerRadioO :: RadioO Selected Unselected
               -> (CircleEvent, Radio Selected Unselected)
 handlerRadioO b (ev, n) =
   (ev, case ev of
-      MouseClick -> R.choose b (selectedOfUnselected n) unselectedOfSelected
+      MouseClick -> R.choose (selectedOfUnselected n) unselectedOfSelected b
       _          -> R.stampFocusedO n b)
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
