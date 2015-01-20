@@ -174,39 +174,30 @@ radioW cx co = foldl1 horiz
   where fx = componentCanvas cx focusedX
         fo = componentCanvas co focusedO
 
-data Loop f = Loop { runLoop :: f (Loop f) }
-
-runF :: Functor f => (a -> f a) -> a -> Loop f
-runF f a = Loop (fmap (runF f) (f a))
-
-runGUI :: Functor f => (a -> f (e, a)) -> a -> Loop f
-runGUI f = runF ((fmap . fmap) snd f)
-
-runM :: Monad m => Loop m -> m a
-runM initial = runLoop initial >>= runM
-
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = runGUI canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
-                                          [ Unselected (circleMake "id2")
-                                          , Unselected (circleMake "id3")
-                                          , Unselected (circleMake "id4") ])
-  runM (runF (loopGUI conn) (runLoop initialGui))
+  let initialGui = Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+                   [ Unselected (circleMake "id2")
+                   , Unselected (circleMake "id3")
+                   , Unselected (circleMake "id4") ]
+  loopGUI conn canvasRadio initialGui
 
-loopGUI :: WS.Connection -> Canvas (Loop Canvas) -> IO (Canvas (Loop Canvas))
-loopGUI conn gui = do
+loopGUI :: WS.Connection -> (a -> Canvas (ev, a)) -> a -> IO b
+loopGUI conn canvas gui = do
+  let canvas' = (fmap . fmap) snd canvas
+
   msg  <- WS.receiveData conn
 
-  let mNextGui = handleMessage gui msg
-      nextGui = maybe gui runLoop mNextGui
+  let mNextGui = handleMessage (canvas' gui) msg
+      nextGui = maybe gui id mNextGui
 
   print msg
 
-  WS.sendTextData conn (render nextGui)
+  WS.sendTextData conn (render (canvas' nextGui))
 
-  return nextGui
+  loopGUI conn canvas nextGui
 
 
 main :: IO ()
