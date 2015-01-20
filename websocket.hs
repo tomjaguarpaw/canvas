@@ -165,11 +165,11 @@ canvasRadioO :: RadioO Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadioO o = fmap (handlerRadioO o) (unselectedC (focusedO o))
 
-canvasRadio :: Radio Selected Unselected -> Canvas (Radio Selected Unselected)
-canvasRadio = (fmap . fmap) snd $ radioW Component { widget  = selectedC
-                                                   , handler = handlerRadioX }
-                                         Component { widget  = unselectedC
-                                                   , handler = handlerRadioO }
+canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
+canvasRadio = radioW Component { widget  = selectedC
+                               , handler = handlerRadioX }
+                     Component { widget  = unselectedC
+                               , handler = handlerRadioO }
 
 type Widget' ev x x' = x -> Canvas (ev, x')
 type Widget  ev x = Widget' ev x x
@@ -194,8 +194,8 @@ radioW cx co = foldl1 horiz
 
 data Loop f = Loop { runLoop :: f (Loop f) }
 
-runF :: Functor f => (a -> f a) -> a -> Loop f
-runF f a = Loop (fmap (runF f) (f a))
+runF :: Functor f => (a -> f (e, a)) -> a -> Loop f
+runF f a = Loop (fmap (runF f) (fmap snd (f a)))
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
