@@ -14,8 +14,7 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Data.Maybe         (fromMaybe)
-import           Radio              (RadioX(At), RadioO(Before, After),
-                                     Radio(Chosen),
+import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      stampO, stampX, radioToNEL, fmapRadio,
                                      duplicateRadio, focusedX, focusedO)
 import qualified Radio              as R
@@ -143,20 +142,13 @@ unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False 
 handlerRadioX :: RadioX x o -> (ev, x) -> (ev, Radio x o)
 handlerRadioX rx (ev, x') = (ev, stampX (R.setFocusedX x' rx))
 
-unselect :: Radio Selected Unselected -> [Unselected]
-unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
-
 handlerRadioO :: RadioO Selected Unselected
               -> (CircleEvent, Unselected)
               -> (CircleEvent, Radio Selected Unselected)
-handlerRadioO b@(Before rs _ os) (ev, n) =
+handlerRadioO b (ev, n) =
   (ev, case ev of
-      MouseClick -> stampX (At (unselect rs) (selectedOfUnselected n) os)
+      MouseClick -> R.choose b (selectedOfUnselected n) unselectedOfSelected
       _          -> stampO (R.setFocusedO n b))
-handlerRadioO a@(After os _ rs) (ev, n) =
-  (ev, case ev of
-      MouseClick -> stampX (At os (selectedOfUnselected n) (unselect rs))
-      _          -> stampO (R.setFocusedO n a))
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
 canvasRadio = radioW Component { widget  = selectedC
