@@ -165,20 +165,11 @@ canvasRadioO :: RadioO Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadioO o = fmap (handlerRadioO o) (unselectedC (focusedO o))
 
-canvasRadio2 :: Radio Selected Unselected -> Canvas (CircleEvent, Radio Selected Unselected)
-canvasRadio2 = radioW Component { widget  = selectedC
-                                , handler = handlerRadioX }
-                      Component { widget  = unselectedC
-                                , handler = handlerRadioO }
-
 canvasRadio :: Radio Selected Unselected -> Canvas (Radio Selected Unselected)
-canvasRadio = fmap snd
-              . foldl1 horiz
-              . NEL.toList
-              . radioToNEL
-              . fmapRadio canvasRadioX canvasRadioO
-              . duplicateRadio
-
+canvasRadio = (fmap . fmap) snd $ radioW Component { widget  = selectedC
+                                                   , handler = handlerRadioX }
+                                         Component { widget  = unselectedC
+                                                   , handler = handlerRadioO }
 
 type Widget' ev x x' = x -> Canvas (ev, x')
 type Widget  ev x = Widget' ev x x
