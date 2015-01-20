@@ -177,14 +177,17 @@ radioW cx co = foldl1 horiz
 
 data Loop f = Loop { runLoop :: f (Loop f) }
 
-runF :: Functor f => (a -> f (e, a)) -> a -> Loop f
-runF f a = Loop (fmap (runF f) (fmap snd (f a)))
+runF :: Functor f => (a -> f a) -> a -> Loop f
+runF f a = Loop (fmap (runF f) (f a))
+
+runGUI :: Functor f => (a -> f (e, a)) -> a -> Loop f
+runGUI f = runF ((fmap . fmap) snd f)
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = runF canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
+  let initialGui = runGUI canvasRadio (Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
                                           [ Unselected (circleMake "id2")
                                           , Unselected (circleMake "id3")
                                           , Unselected (circleMake "id4") ])
