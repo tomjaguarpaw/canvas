@@ -73,6 +73,13 @@ focusedO :: RadioO x o -> o
 focusedO (Before _ o _) = o
 focusedO (After _ o _) = o
 
+unselect :: (x -> o) -> Radio x o -> [o]
+unselect u = NEL.toList . radioToNEL . fmapRadio u id
+
+choose :: RadioO x o -> x -> (x -> o) -> Radio x o
+choose (Before rs _ os) x u = stampX (At (unselect u rs) x os)
+choose (After  os _ rs) x u = stampX (At os x (unselect u rs))
+
 setFocusedX :: x -> RadioX x o -> RadioX x o
 setFocusedX x (At l _ r) = At l x r
 
