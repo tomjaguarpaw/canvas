@@ -165,6 +165,11 @@ canvasRadioO :: RadioO Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
 canvasRadioO o = fmap (handlerRadioO o) (unselectedC (focusedO o))
 
+canvasRadio2 :: Radio Selected Unselected -> Canvas (CircleEvent, Radio Selected Unselected)
+canvasRadio2 = radioW Component { widget  = selectedC
+                                , handler = handlerRadioX }
+                      Component { widget  = unselectedC
+                                , handler = handlerRadioO }
 
 canvasRadio :: Radio Selected Unselected -> Canvas (Radio Selected Unselected)
 canvasRadio = fmap snd
@@ -177,25 +182,24 @@ canvasRadio = fmap snd
 
 type Widget' ev x x' = x -> Canvas (ev, x')
 type Widget  ev x = Widget' ev x x
-type Handler' ev ev' xz x' xz' = xz -> (ev, x') -> (ev', xz')
-type Handler ev ev' x xz = Handler' ev ev' xz x xz
+type Handler ev ev' xz x' xa = xz -> (ev, x') -> (ev', xa)
 
-data Component ev ev' x xz = Component { widget  :: Widget ev x
-                                       , handler :: Handler ev ev' x xz }
+data Component ev ev' x xz xa = Component { widget  :: Widget ev x
+                                          , handler :: Handler ev ev' xz x xa }
 
-componentCanvas :: Component ev ev' x xz -> xz -> x -> Canvas (ev', xz)
-componentCanvas cg xz x = fmap (\ex' -> handler cg xz ex') (widget cg x)
+componentCanvas :: Component ev ev' x xz xa -> (xz -> x) -> xz -> Canvas (ev', xa)
+componentCanvas cg x xz = fmap (\ex' -> handler cg xz ex') (widget cg (x xz))
 
-radioW :: Component e1 ev' x (RadioX x o)
-       -> Component e2 ev' o (RadioO x o)
+radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
+       -> Component e2 ev' o (RadioO x o) (Radio x o)
        -> Widget ev' (Radio x o)
 radioW cx co = foldl1 horiz
                . NEL.toList
                . radioToNEL
                . fmapRadio fx fo
                . duplicateRadio
-  where fx xz = fmap (L.over L._2 stampX) (componentCanvas cx xz (focusedX xz))
-        fo oz = fmap (L.over L._2 stampO) (componentCanvas co oz (focusedO oz))
+  where fx = componentCanvas cx focusedX
+        fo = componentCanvas co focusedO
 
 data Loop f = Loop { runLoop :: f (Loop f) }
 
