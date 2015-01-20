@@ -137,13 +137,13 @@ selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c
 unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
-handlerRadioX :: RadioX x o -> (ev, x) -> (ev, Radio x o)
-handlerRadioX rx (ev, x') = (ev, R.stampFocusedX x' rx)
+handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
+handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
 
-handlerRadioO :: RadioO Selected Unselected
-              -> (CircleEvent, Unselected)
+handlerRadioO :: (CircleEvent, Unselected)
+              -> RadioO Selected Unselected
               -> (CircleEvent, Radio Selected Unselected)
-handlerRadioO b (ev, n) =
+handlerRadioO (ev, n) b =
   (ev, case ev of
       MouseClick -> R.choose (selectedOfUnselected n) unselectedOfSelected b
       _          -> R.stampFocusedO n b)
@@ -156,13 +156,13 @@ canvasRadio = radioW Component { widget  = selectedC
 
 type Widget' ev x x' = x -> Canvas (ev, x')
 type Widget  ev x = Widget' ev x x
-type Handler ev ev' xz x' xa = xz -> (ev, x') -> (ev', xa)
+type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
 
 data Component ev ev' x xz xa = Component { widget  :: Widget ev x
                                           , handler :: Handler ev ev' xz x xa }
 
 componentCanvas :: Component ev ev' x xz xa -> (xz -> x) -> xz -> Canvas (ev', xa)
-componentCanvas cg x xz = fmap (\ex' -> handler cg xz ex') (widget cg (x xz))
+componentCanvas cg x xz = fmap (\ex' -> handler cg ex' xz) (widget cg (x xz))
 
 radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
        -> Component e2 ev' o (RadioO x o) (Radio x o)
