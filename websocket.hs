@@ -17,7 +17,7 @@ import           Data.Maybe         (fromMaybe)
 import           Radio              (RadioX(At), RadioO(Before, After),
                                      Radio(Chosen),
                                      stampO, stampX, radioToNEL, fmapRadio,
-                                     duplicateRadio)
+                                     duplicateRadio, focusedX, focusedO)
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -179,6 +179,29 @@ canvasRadio = fmap snd
               . radioToNEL
               . fmapRadio canvasRadioX canvasRadioO
               . duplicateRadio
+
+
+type Widget' ev x x' = x -> Canvas (ev, x')
+type Widget  ev x = Widget' ev x x
+type Handler' ev ev' xz x' xz' = xz -> (ev, x') -> (ev', xz')
+type Handler ev ev' x xz = Handler' ev ev' xz x xz
+
+data Component ev ev' x xz = Component { widget  :: Widget ev x
+                                       , handler :: Handler ev ev' x xz }
+
+componentCanvas :: Component ev ev' x xz -> xz -> x -> Canvas (ev', xz)
+componentCanvas cg xz x = fmap (\ex' -> handler cg xz ex') (widget cg x)
+
+radioW :: Component e1 ev' x (RadioX x o)
+       -> Component e2 ev' o (RadioO x o)
+       -> Widget ev' (Radio x o)
+radioW cx co = foldl1 horiz
+               . NEL.toList
+               . radioToNEL
+               . fmapRadio fx fo
+               . duplicateRadio
+  where fx xz = fmap (L.over L._2 stampX) (componentCanvas cx xz (focusedX xz))
+        fo oz = fmap (L.over L._2 stampO) (componentCanvas co oz (focusedO oz))
 
 data Loop f = Loop { runLoop :: f (Loop f) }
 

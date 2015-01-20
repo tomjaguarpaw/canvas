@@ -66,6 +66,13 @@ prependO :: [o] -> Radio x o -> Radio x o
 prependO [] rs     = rs
 prependO (o:os) rs = Unchosen o (prependO os rs)
 
+focusedX :: RadioX x o -> x
+focusedX (At _ x _) = x
+
+focusedO :: RadioO x o -> o
+focusedO (Before _ o _) = o
+focusedO (After _ o _) = o
+
 stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)
 stampO (After os o rs)  = (os ++ [o]) `prependO` rs
