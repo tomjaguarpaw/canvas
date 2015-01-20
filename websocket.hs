@@ -190,10 +190,6 @@ runServer pc = do
                                           [ Unselected (circleMake "id2")
                                           , Unselected (circleMake "id3")
                                           , Unselected (circleMake "id4") ])
-{-
-  let initialGui = makePackage horizI ((circleMake "id1", circleI)
-                                       :| [ (circleMake "id2", circleI) ])
--}
   let loop gui = do
         msg  <- WS.receiveData conn
 
@@ -201,7 +197,6 @@ runServer pc = do
             nextGui = fromMaybe gui mNextGui
 
         print msg
---        print mNextGui
 
         WS.sendTextData conn (render (runLoop nextGui))
 
