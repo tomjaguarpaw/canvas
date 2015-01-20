@@ -139,10 +139,12 @@ selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c
 unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
+handlerRadioX :: RadioX x o -> (ev, x) -> (ev, Radio x o)
+handlerRadioX (At ls x rs) (ev, x') = (ev, stampX (At ls x' rs))
+
 canvasRadioX :: RadioX Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
-canvasRadioX (At ls x rs) = fmap (\(ev, x') -> (ev, stampX (At ls x' rs)))
-                                 (selectedC x)
+canvasRadioX a@(At ls x rs) = fmap (handlerRadioX a) (selectedC x)
 
 unselect :: Radio Selected Unselected -> [Unselected]
 unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
