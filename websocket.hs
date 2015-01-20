@@ -183,6 +183,9 @@ runF f a = Loop (fmap (runF f) (f a))
 runGUI :: Functor f => (a -> f (e, a)) -> a -> Loop f
 runGUI f = runF ((fmap . fmap) snd f)
 
+runM :: Monad m => Loop m -> m a
+runM initial = runLoop initial >>= runM
+
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
@@ -201,9 +204,9 @@ runServer pc = do
 
         WS.sendTextData conn (render (runLoop nextGui))
 
-        loop nextGui
+        return nextGui
 
-  loop initialGui
+  runM (runF loop initialGui)
 
 
 main :: IO ()
