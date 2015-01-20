@@ -83,9 +83,15 @@ choose (After  os _ rs) x u = stampX (At os x (unselect u rs))
 setFocusedX :: x -> RadioX x o -> RadioX x o
 setFocusedX x (At l _ r) = At l x r
 
+stampFocusedX :: x -> RadioX x o -> Radio x o
+stampFocusedX x = stampX . setFocusedX x
+
 setFocusedO :: o -> RadioO x o -> RadioO x o
 setFocusedO o (Before l _ r) = Before l o r
 setFocusedO o (After  l _ r) = After  l o r
+
+stampFocusedO :: o -> RadioO x o -> Radio x o
+stampFocusedO o = stampO . setFocusedO o
 
 stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)

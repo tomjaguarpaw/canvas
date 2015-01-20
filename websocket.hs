@@ -15,7 +15,7 @@ import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Data.Maybe         (fromMaybe)
 import           Radio              (RadioX, RadioO, Radio(Chosen),
-                                     stampO, stampX, radioToNEL, fmapRadio,
+                                     radioToNEL, fmapRadio,
                                      duplicateRadio, focusedX, focusedO)
 import qualified Radio              as R
 
@@ -140,7 +140,7 @@ unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
 handlerRadioX :: RadioX x o -> (ev, x) -> (ev, Radio x o)
-handlerRadioX rx (ev, x') = (ev, stampX (R.setFocusedX x' rx))
+handlerRadioX rx (ev, x') = (ev, R.stampFocusedX x' rx)
 
 handlerRadioO :: RadioO Selected Unselected
               -> (CircleEvent, Unselected)
@@ -148,7 +148,7 @@ handlerRadioO :: RadioO Selected Unselected
 handlerRadioO b (ev, n) =
   (ev, case ev of
       MouseClick -> R.choose b (selectedOfUnselected n) unselectedOfSelected
-      _          -> stampO (R.setFocusedO n b))
+      _          -> R.stampFocusedO n b)
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
 canvasRadio = radioW Component { widget  = selectedC
