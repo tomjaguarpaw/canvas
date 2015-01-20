@@ -193,19 +193,20 @@ runServer pc = do
                                           [ Unselected (circleMake "id2")
                                           , Unselected (circleMake "id3")
                                           , Unselected (circleMake "id4") ])
-  let loop gui = do
-        msg  <- WS.receiveData conn
+  runM (runF (loopGUI conn) (runLoop initialGui))
 
-        let mNextGui = handleMessage gui msg
-            nextGui = maybe gui runLoop mNextGui
+loopGUI :: WS.Connection -> Canvas (Loop Canvas) -> IO (Canvas (Loop Canvas))
+loopGUI conn gui = do
+  msg  <- WS.receiveData conn
 
-        print msg
+  let mNextGui = handleMessage gui msg
+      nextGui = maybe gui runLoop mNextGui
 
-        WS.sendTextData conn (render nextGui)
+  print msg
 
-        return nextGui
+  WS.sendTextData conn (render nextGui)
 
-  runM (runF loop (runLoop initialGui))
+  return nextGui
 
 
 main :: IO ()
