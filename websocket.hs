@@ -149,29 +149,21 @@ canvasRadioX a@(At ls x rs) = fmap (handlerRadioX a) (selectedC x)
 unselect :: Radio Selected Unselected -> [Unselected]
 unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
 
+handlerRadioO :: RadioO Selected Unselected
+              -> (CircleEvent, Unselected)
+              -> (CircleEvent, Radio Selected Unselected)
+handlerRadioO (Before rs o os) (ev, n) =
+  (ev, case ev of
+      MouseClick -> stampX (At (unselect rs) (selectedOfUnselected n) os)
+      _          -> stampO (Before rs n os))
+handlerRadioO (After os o rs) (ev, n) =
+  (ev, case ev of
+      MouseClick -> stampX (At os (selectedOfUnselected n) (unselect rs))
+      _          -> stampO (After os n rs))
+
 canvasRadioO :: RadioO Selected Unselected
              -> Canvas (CircleEvent, Radio Selected Unselected)
-canvasRadioO = \case
-  Before rs o os -> fmap (\(ev, n) -> (ev, case ev of
-                                            MouseClick ->
-                                              stampX (At
-                                                (unselect rs)
-                                                (selectedOfUnselected n)
-                                                os)
-                                            _ ->
-                                              stampO (Before rs n os)
-                                        ))
-                           (unselectedC o)
-  After os o rs -> fmap (\(ev, n) -> (ev, case ev of
-                                           MouseClick ->
-                                             stampX (At
-                                               os
-                                               (selectedOfUnselected n)
-                                               (unselect rs))
-                                           _ ->
-                                             stampO (After os n rs)
-                                       ))
-                           (unselectedC o)
+canvasRadioO o = fmap (handlerRadioO o) (unselectedC (focusedO o))
 
 
 canvasRadio :: Radio Selected Unselected -> Canvas (Radio Selected Unselected)
