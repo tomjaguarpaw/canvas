@@ -13,7 +13,6 @@ import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
-import           Data.Maybe         (fromMaybe)
 import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      radioToNEL, fmapRadio,
                                      duplicateRadio, focusedX, focusedO)
@@ -197,16 +196,16 @@ runServer pc = do
   let loop gui = do
         msg  <- WS.receiveData conn
 
-        let mNextGui = handleMessage (runLoop gui) msg
-            nextGui = fromMaybe gui mNextGui
+        let mNextGui = handleMessage gui msg
+            nextGui = maybe gui runLoop mNextGui
 
         print msg
 
-        WS.sendTextData conn (render (runLoop nextGui))
+        WS.sendTextData conn (render nextGui)
 
         return nextGui
 
-  runM (runF loop initialGui)
+  runM (runF loop (runLoop initialGui))
 
 
 main :: IO ()
