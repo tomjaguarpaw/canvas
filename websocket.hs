@@ -117,12 +117,10 @@ data Selected = Selected Circle
 data Unselected = Unselected Circle
 
 selectedC :: Selected -> Canvas (CircleEvent, Selected)
-selectedC s@(Selected c) = fmap (\ev -> let new = selectedHandle ev s
-                                        in (ev, new)) (circle c)
+selectedC s@(Selected c) = fmap (\ev -> (ev, selectedHandle ev s)) (circle c)
 
 unselectedC :: Unselected -> Canvas (CircleEvent, Unselected)
-unselectedC s@(Unselected c) = fmap (\ev -> let new = unselectedHandle ev s
-                                           in (ev, new)) (circle c)
+unselectedC s@(Unselected c) = fmap (\ev -> (ev, unselectedHandle ev s)) (circle c)
 
 unselectedHandle :: CircleEvent -> Unselected -> Unselected
 unselectedHandle ev (Unselected c) = Unselected ((case ev of MouseClick -> id
