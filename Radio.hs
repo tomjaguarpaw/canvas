@@ -40,10 +40,6 @@ consRadioX o (At os x os') = At (o:os) x os'
 consRadio :: o -> Radio x o -> Radio x o
 consRadio o rs = Unchosen o rs
 
-unchoose :: (x -> o) -> Radio x o -> NEL.NonEmpty o
-unchoose f (Chosen x os)   = f x :| os
-unchoose f (Unchosen o rs) = o `NEL.cons` unchoose f rs
-
 toRadio' :: Radio x o -> Radio' x o
 toRadio' (Chosen x [])     = Chosen1' x
 toRadio' (Chosen x (y:ys)) = Chosen' x (y :| ys)
@@ -145,10 +141,6 @@ singleton a = a :| []
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
 fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
 fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
-
-listToNEL :: [a] -> Maybe (NEL.NonEmpty a)
-listToNEL [] = Nothing
-listToNEL (a:as) = Just (a:|as)
 
 radioToNEL :: Radio a a -> NEL.NonEmpty a
 radioToNEL (Chosen x xs) = x :| xs
