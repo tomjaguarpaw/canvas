@@ -18,6 +18,7 @@ import           Radio              (RadioX(At), RadioO(Before, After),
                                      Radio(Chosen),
                                      stampO, stampX, radioToNEL, fmapRadio,
                                      duplicateRadio, focusedX, focusedO)
+import qualified Radio              as R
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -140,7 +141,7 @@ unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
 handlerRadioX :: RadioX x o -> (ev, x) -> (ev, Radio x o)
-handlerRadioX (At ls _ rs) (ev, x') = (ev, stampX (At ls x' rs))
+handlerRadioX rx (ev, x') = (ev, stampX (R.setFocusedX x' rx))
 
 unselect :: Radio Selected Unselected -> [Unselected]
 unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
@@ -148,14 +149,14 @@ unselect = NEL.toList . radioToNEL . fmapRadio unselectedOfSelected id
 handlerRadioO :: RadioO Selected Unselected
               -> (CircleEvent, Unselected)
               -> (CircleEvent, Radio Selected Unselected)
-handlerRadioO (Before rs _ os) (ev, n) =
+handlerRadioO b@(Before rs _ os) (ev, n) =
   (ev, case ev of
       MouseClick -> stampX (At (unselect rs) (selectedOfUnselected n) os)
-      _          -> stampO (Before rs n os))
-handlerRadioO (After os _ rs) (ev, n) =
+      _          -> stampO (R.setFocusedO n b))
+handlerRadioO a@(After os _ rs) (ev, n) =
   (ev, case ev of
       MouseClick -> stampX (At os (selectedOfUnselected n) (unselect rs))
-      _          -> stampO (After os n rs))
+      _          -> stampO (R.setFocusedO n a))
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
 canvasRadio = radioW Component { widget  = selectedC

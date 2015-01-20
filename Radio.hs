@@ -73,6 +73,13 @@ focusedO :: RadioO x o -> o
 focusedO (Before _ o _) = o
 focusedO (After _ o _) = o
 
+setFocusedX :: x -> RadioX x o -> RadioX x o
+setFocusedX x (At l _ r) = At l x r
+
+setFocusedO :: o -> RadioO x o -> RadioO x o
+setFocusedO o (Before l _ r) = Before l o r
+setFocusedO o (After  l _ r) = After  l o r
+
 stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)
 stampO (After os o rs)  = (os ++ [o]) `prependO` rs
