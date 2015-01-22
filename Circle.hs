@@ -23,6 +23,9 @@ parseCircleEvent = \case "mouseover" -> Just MouseOver
                          "mouseout"  -> Just MouseOut
                          "click"     -> Just MouseClick
                          _           -> Nothing
+                         -- The default case is actually "unexpected behaviour"
+                         -- as we should never get an unknown event for any
+                         -- given name
 
 circleColor :: CircleState -> T.Text
 circleColor c = case (L.view csHovered c, L.view csSelected c)
