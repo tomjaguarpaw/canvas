@@ -7,6 +7,7 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      radioToNEL, fmapRadio,
                                      duplicateRadio, focusedX, focusedO)
 import qualified Radio              as R
+import qualified Doc                as D
 import           Doc                (Canvas, horiz, handleMessage, render)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
@@ -31,9 +32,12 @@ canvasRadio = radioW Component { widget  = selectedC
                      Component { widget  = unselectedC
                                , handler = handlerRadioO }
 
-type Widget' ev x x' = x -> Canvas (ev, x')
+type Widget' ev x x' = WidgetD' [D.GUICircle] ev x x'
 type Widget  ev x = Widget' ev x x
 type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
+
+type WidgetD' d ev x x' = x -> D.Doc d (ev, x')
+type WidgetD  d ev x = WidgetD' d ev x x
 
 data Component ev ev' x xz xa = Component { widget  :: Widget ev x
                                           , handler :: Handler ev ev' xz x xa }
@@ -51,6 +55,13 @@ radioW cx co = foldl1 horiz
                . duplicateRadio
   where fx = componentCanvas cx focusedX
         fo = componentCanvas co focusedO
+
+vert :: WidgetD [D.Element] ev x
+     -> WidgetD [D.Element] ev x'
+     -> WidgetD [D.Element] ev (x, x')
+vert w w' (x, x') = fmap (\(ev, y) -> (ev, (y, x'))) (w x)
+                    `D.vert`
+                    fmap (\(ev, y') -> (ev, (x, y'))) (w' x')
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
