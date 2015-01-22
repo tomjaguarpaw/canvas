@@ -9,7 +9,7 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
 import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
-import           Doc                (Canvas, horiz, handleMessage)
+import           Doc                (horiz, handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
                                      selectedMake, unselectedMake,
@@ -45,10 +45,12 @@ type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
 type WidgetD' d ev x x' = x -> D.Doc d (ev, x')
 type WidgetD  d ev x = WidgetD' d ev x x
 
-data Component ev ev' x xz xa = Component { widget  :: Widget ev x
-                                          , handler :: Handler ev ev' xz x xa }
+type Component ev ev' x xz xa = ComponentD [D.GUICircle] ev ev' x xz xa
 
-componentCanvas :: Component ev ev' x xz xa -> (xz -> x) -> xz -> Canvas (ev', xa)
+data ComponentD d ev ev' x xz xa = Component { widget  :: WidgetD d ev x
+                                             , handler :: Handler  ev ev' xz x xa }
+
+componentCanvas :: ComponentD d ev ev' x xz xa -> (xz -> x) -> xz -> D.Doc d (ev', xa)
 componentCanvas cg x xz = fmap (\ex' -> handler cg ex' xz) (widget cg (x xz))
 
 radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
@@ -65,9 +67,17 @@ radioW cx co = foldl1 horiz
 vert :: WidgetD [D.Element] ev x
      -> WidgetD [D.Element] ev' x'
      -> WidgetD [D.Element] (Either ev ev') (x, x')
-vert w w' (x, x') = fmap (\(ev, y) -> (Left ev, (y, x'))) (w x)
-                    `D.vert`
-                    fmap (\(ev, y') -> (Right ev, (x, y'))) (w' x')
+vert w w' = vertW Component { widget  = w
+                             , handler = \(ev, x) (_, y) -> (Left ev, (x, y)) }
+                   Component { widget  = w'
+                             , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
+
+vertW :: ComponentD [D.Element] e1 ev' x (x, y) (x, y)
+      -> ComponentD [D.Element] e2 ev' y (x, y) (x, y)
+      -> WidgetD [D.Element] ev' (x, y)
+vertW cl cr t = fl t `D.vert` fr t
+  where fl = componentCanvas cl fst
+        fr = componentCanvas cr snd
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
