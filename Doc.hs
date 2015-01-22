@@ -32,12 +32,15 @@ nullCanvas :: Canvas a
 nullCanvas = Doc [] (const Nothing)
 
 horiz :: Canvas a -> Canvas a -> Canvas a
-horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys)
-                                    (\message -> case xh message of
-                                        r@(Just _) -> r
-                                        Nothing -> case yh message of
-                                          s@(Just _) -> s
-                                          Nothing -> Nothing)
+horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (foo xh yh)
+
+foo :: (t1 -> Maybe t) -> (t1 -> Maybe t) -> t1 -> Maybe t
+foo xh yh = \message -> firstJust (xh message) (yh message)
+
+firstJust :: Maybe a -> Maybe a -> Maybe a
+firstJust (Just a) _ = Just a
+firstJust Nothing (Just b) = Just b
+firstJust Nothing Nothing = Nothing
 
 handleMessage :: Canvas a -> Message -> Maybe a
 handleMessage (Doc _ h) = h
