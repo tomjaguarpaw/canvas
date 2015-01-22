@@ -79,3 +79,9 @@ selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c
 
 unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
+
+selectedMake :: T.Text -> Selected
+selectedMake = Selected . L.set (cState.csSelected) True . circleMake
+
+unselectedMake :: T.Text -> Unselected
+unselectedMake = Unselected . circleMake

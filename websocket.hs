@@ -2,7 +2,6 @@
 {-# LANGUAGE LambdaCase #-}
 
 import qualified Network.WebSockets as WS
-import qualified Control.Lens       as L
 import qualified Data.List.NonEmpty as NEL
 import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      radioToNEL, fmapRadio,
@@ -10,9 +9,8 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
 import qualified Radio              as R
 import           Doc                (Canvas, horiz, handleMessage, render)
 import           Circle             (CircleEvent(MouseClick),
-                                     Unselected(Unselected),
-                                     Selected(Selected),
-                                     circleMake, cState, csSelected,
+                                     Selected, Unselected,
+                                     selectedMake, unselectedMake,
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
 
@@ -58,10 +56,10 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = Chosen (Selected (L.set (cState.csSelected) True (circleMake "id1")))
-                   [ Unselected (circleMake "id2")
-                   , Unselected (circleMake "id3")
-                   , Unselected (circleMake "id4") ]
+  let initialGui = Chosen (selectedMake "id1")
+                   [ unselectedMake "id2"
+                   , unselectedMake "id3"
+                   , unselectedMake "id4" ]
   loopGUI conn canvasRadio initialGui
 
 loopGUI :: WS.Connection -> (a -> Canvas (ev, a)) -> a -> IO b
