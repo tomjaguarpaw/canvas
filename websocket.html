@@ -14,7 +14,9 @@ function mouseover(theid)
     }
 }
 
-function click(theid)
+// Can't call this "click"
+// http://stackoverflow.com/a/4389178/997606
+function click_(theid)
 {
     ws.send(theid + ",click");
 }

@@ -145,3 +145,9 @@ fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
 radioToNEL :: Radio a a -> NEL.NonEmpty a
 radioToNEL (Chosen x xs) = x :| xs
 radioToNEL (Unchosen x xs) = x `NEL.cons` radioToNEL xs
+
+chooseFirst :: (o -> x) -> (x -> o) -> Radio x o -> Radio x o
+chooseFirst ch un r = case d of
+  Chosen _ _   -> r
+  Unchosen c _  -> choose (ch (focusedO c)) un c
+  where d = duplicateRadio r

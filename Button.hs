@@ -23,9 +23,12 @@ buttonMake t n = Button { _bName = n, _bText = t }
 buttonHandle :: ButtonEvent -> Button -> Button
 buttonHandle _ = id
 
+guiButton :: Button -> D.GUIButton
+guiButton b = D.GUIButton (_bName b) (_bText b)
+
 -- TODO: duplication with circle
 button :: Button -> D.Doc [D.Element] ButtonEvent
-button b = D.Doc [D.Button (_bText b)] parseMessage
+button b = D.Doc [D.Button (guiButton b)] parseMessage
   where parseMessage message = case T.split (== ',') message
                                of [theName, theEvent] ->
                                     if theName == (_bName b)

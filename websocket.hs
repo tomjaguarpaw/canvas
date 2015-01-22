@@ -72,6 +72,14 @@ vert w w' = vertW Component { widget  = w
                   Component { widget  = w'
                             , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
 
+resetter :: WidgetD [D.Element] () (Radio Selected Unselected, B.Button)
+resetter = vertW Component { widget  = elementRadio
+                           , handler = \(_, x) (_, y) -> ((), (x, y)) }
+                 Component { widget  = B.buttonC
+                           , handler = \(_, y) (x, _) -> ((), (chooseFirst' x, y)) }
+  where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
+
+
 vertW :: ComponentD [D.Element] e1 ev' x (x, y) (x, y)
       -> ComponentD [D.Element] e2 ev' y (x, y) (x, y)
       -> WidgetD [D.Element] ev' (x, y)
@@ -89,8 +97,8 @@ runServer pc = do
                      , unselectedMake (t 4) ]
         where t i = "id" <> T.pack (show (i :: Int)) <> T.pack (show (s :: Int))
 
-  loopGUI conn (elementRadio `vert` B.buttonC)
-               (initialGui 1, B.buttonMake "inactive" "idb1")
+  loopGUI conn resetter
+               (initialGui 1, B.buttonMake "Reset" "idb1")
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do

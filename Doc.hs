@@ -19,7 +19,7 @@ type Message = T.Text
 data Doc d a = Doc d (Message -> Maybe a)
 
 data Element = GUICircles [GUICircle]
-             | Button T.Text
+             | Button GUIButton
 
 instance Functor (Doc d) where
   fmap f (Doc cs h) = Doc cs ((fmap . fmap) f h)
@@ -28,6 +28,9 @@ type Canvas a = Doc [GUICircle] a
 
 data GUICircle = GUICircle { gcName  :: T.Text
                            , gcColor :: T.Text } deriving Show
+
+data GUIButton = GUIButton { gbName :: T.Text
+                           , gbText :: T.Text }
 
 nullCanvas :: Canvas a
 nullCanvas = Doc [] (const Nothing)
@@ -67,13 +70,18 @@ circleSvg cx cy color name =
            ! AS.stroke "black"
            ! AS.strokeWidth "4"
            ! AS.fill color
-           ! AS.onmouseover (handler "mouseover")
-           ! AS.onmouseout  (handler "mouseout")
-           ! AS.onclick     (handler "click")
-    where handler h = h <> "('" <> name <> "')"
+           ! AS.onmouseover (handler' "mouseover")
+           ! AS.onmouseout  (handler' "mouseout")
+           ! AS.onclick     (handler' "click_")
+    where handler' = flip handler name
 
-buttonHtml :: T.Text -> H.Html
-buttonHtml = (H.button ! AH.type_ "button") . H.toHtml
+handler :: S.AttributeValue -> S.AttributeValue -> S.AttributeValue
+handler h n = h <> "('" <> n <> "')"
+
+buttonHtml :: GUIButton -> H.Html
+buttonHtml b = (H.button ! AH.type_ "button"
+                         ! AH.onclick (handler "click_" (B.toValue (gbName b))))
+                         (H.toHtml (gbText b))
 
 elementHtml :: Element -> H.Html
 elementHtml e = do case e of GUICircles gs -> circlesSvg gs
