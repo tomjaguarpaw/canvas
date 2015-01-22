@@ -13,29 +13,31 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 
 type Message = T.Text
 
-data Canvas a = Canvas [GUICircle] (Message -> Maybe a)
+data Doc d a = Doc d (Message -> Maybe a)
 
-instance Functor Canvas where
-  fmap f (Canvas cs h) = Canvas cs ((fmap . fmap) f h)
+instance Functor (Doc d) where
+  fmap f (Doc cs h) = Doc cs ((fmap . fmap) f h)
+
+type Canvas a = Doc [GUICircle] a
 
 data GUICircle = GUICircle { gcName  :: T.Text
                            , gcColor :: T.Text } deriving Show
 
 nullCanvas :: Canvas a
-nullCanvas = Canvas [] (const Nothing)
+nullCanvas = Doc [] (const Nothing)
 
 horiz :: Canvas a -> Canvas a -> Canvas a
-horiz (Canvas xs xh) (Canvas ys yh) = Canvas (xs ++ ys)
-                                             (\message -> case xh message of
-                                                 r@(Just _) -> r
-                                                 Nothing -> case yh message of
-                                                   s@(Just _) -> s
-                                                   Nothing -> Nothing)
+horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys)
+                                    (\message -> case xh message of
+                                        r@(Just _) -> r
+                                        Nothing -> case yh message of
+                                          s@(Just _) -> s
+                                          Nothing -> Nothing)
 handleMessage :: Canvas a -> Message -> Maybe a
-handleMessage (Canvas _ h) = h
+handleMessage (Doc _ h) = h
 
 render :: Canvas a -> T.Text
-render (Canvas cs _) = renderHtml (documentSvg h w (sequence_ (package cs [0..])))
+render (Doc cs _) = renderHtml (documentSvg h w (sequence_ (package cs [0..])))
 
   where package = zipWith (\c i -> circleSvg (50 + i * 100) 50 (B.toValue (gcColor c)) (B.toValue (gcName c)))
         w = 100 * length cs

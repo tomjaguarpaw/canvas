@@ -6,7 +6,7 @@ module Circle where
 
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
-import           Doc                (Canvas(Canvas), GUICircle(GUICircle),
+import           Doc                (Doc(Doc), Canvas, GUICircle(GUICircle),
                                      gcName, gcColor)
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
@@ -44,7 +44,7 @@ guiCircle c = GUICircle { gcName  = _cName c
                         , gcColor = (circleColor . L.view cState) c }
 
 circle :: Circle -> Canvas CircleEvent
-circle c@(Circle name _) = Canvas [guiCircle c] parseMessage
+circle c@(Circle name _) = Doc [guiCircle c] parseMessage
   where parseMessage message = case T.split (== ',') message
                                of [theName, theEvent] ->
                                     if theName == name
