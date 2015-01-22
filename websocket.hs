@@ -68,9 +68,9 @@ vert :: WidgetD [D.Element] ev x
      -> WidgetD [D.Element] ev' x'
      -> WidgetD [D.Element] (Either ev ev') (x, x')
 vert w w' = vertW Component { widget  = w
-                             , handler = \(ev, x) (_, y) -> (Left ev, (x, y)) }
-                   Component { widget  = w'
-                             , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
+                            , handler = \(ev, x) (_, y) -> (Left ev, (x, y)) }
+                  Component { widget  = w'
+                            , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
 
 vertW :: ComponentD [D.Element] e1 ev' x (x, y) (x, y)
       -> ComponentD [D.Element] e2 ev' y (x, y) (x, y)
