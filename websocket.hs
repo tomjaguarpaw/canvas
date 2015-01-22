@@ -8,12 +8,14 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      duplicateRadio, focusedX, focusedO)
 import qualified Radio              as R
 import qualified Doc                as D
-import           Doc                (Canvas, horiz, handleMessage, render)
+import           Doc                (Canvas, horiz, handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
                                      selectedMake, unselectedMake,
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
+import           Data.Monoid        ((<>))
+import qualified Data.Text.Lazy     as T
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -31,6 +33,9 @@ canvasRadio = radioW Component { widget  = selectedC
                                , handler = handlerRadioX }
                      Component { widget  = unselectedC
                                , handler = handlerRadioO }
+
+elementRadio :: WidgetD [D.Element] CircleEvent (Radio Selected Unselected)
+elementRadio = D.elementOfCircles . canvasRadio
 
 type Widget' ev x x' = WidgetD' [D.GUICircle] ev x x'
 type Widget  ev x = Widget' ev x x
@@ -67,13 +72,15 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = Chosen (selectedMake "id1")
-                   [ unselectedMake "id2"
-                   , unselectedMake "id3"
-                   , unselectedMake "id4" ]
-  loopGUI conn canvasRadio initialGui
+  let initialGui s = Chosen (selectedMake (t 1))
+                     [ unselectedMake (t 2)
+                     , unselectedMake (t 3)
+                     , unselectedMake (t 4) ]
+        where t i = "id" <> T.pack (show (i :: Int)) <> T.pack (show (s :: Int))
 
-loopGUI :: WS.Connection -> (a -> Canvas (ev, a)) -> a -> IO b
+  loopGUI conn (elementRadio `vert` elementRadio) (initialGui 1, initialGui 2)
+
+loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
   let canvas' = (fmap . fmap) snd canvas
 
@@ -84,7 +91,7 @@ loopGUI conn canvas gui = do
 
   print msg
 
-  WS.sendTextData conn (render (canvas' nextGui))
+  WS.sendTextData conn (D.renderElements (canvas' nextGui))
 
   loopGUI conn canvas nextGui
 

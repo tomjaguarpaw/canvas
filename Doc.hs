@@ -43,7 +43,7 @@ firstJust (Just a) _ = Just a
 firstJust Nothing (Just b) = Just b
 firstJust Nothing Nothing = Nothing
 
-handleMessage :: Canvas a -> Message -> Maybe a
+handleMessage :: Doc d a -> Message -> Maybe a
 handleMessage (Doc _ h) = h
 
 circlesSvg :: [GUICircle] -> S.Svg
