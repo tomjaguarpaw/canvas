@@ -74,3 +74,6 @@ buttonHtml = (H.button ! AH.type_ "button") . H.toHtml
 elementHtml :: Element -> H.Html
 elementHtml = \case GUICircles gs -> circlesSvg gs
                     Button t      -> buttonHtml t
+
+renderElements :: Doc [Element] a -> T.Text
+renderElements (Doc d _) = (renderHtml . mapM_ elementHtml) d
