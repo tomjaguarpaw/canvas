@@ -35,6 +35,9 @@ nullCanvas = Doc [] (const Nothing)
 horiz :: Canvas a -> Canvas a -> Canvas a
 horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (liftA2 firstJust xh yh)
 
+vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
+vert  (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (liftA2 firstJust xh yh)
+
 firstJust :: Maybe a -> Maybe a -> Maybe a
 firstJust (Just a) _ = Just a
 firstJust Nothing (Just b) = Just b
