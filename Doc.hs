@@ -55,6 +55,7 @@ circleSvg cx cy color name =
            ! AS.stroke "black"
            ! AS.strokeWidth "4"
            ! AS.fill color
-           ! AS.onmouseover ("mouseover('" <> name <> "')")
-           ! AS.onmouseout  ("mouseout('" <> name <> "')")
-           ! AS.onclick     ("click('" <> name <> "')")
+           ! AS.onmouseover (handler "mouseover")
+           ! AS.onmouseout  (handler "mouseout")
+           ! AS.onclick     (handler "click")
+    where handler h = h <> "('" <> name <> "')"
