@@ -8,6 +8,7 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      duplicateRadio, focusedX, focusedO)
 import qualified Radio              as R
 import qualified Doc                as D
+import qualified Button             as B
 import           Doc                (Canvas, horiz, handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
@@ -62,11 +63,11 @@ radioW cx co = foldl1 horiz
         fo = componentCanvas co focusedO
 
 vert :: WidgetD [D.Element] ev x
-     -> WidgetD [D.Element] ev x'
-     -> WidgetD [D.Element] ev (x, x')
-vert w w' (x, x') = fmap (\(ev, y) -> (ev, (y, x'))) (w x)
+     -> WidgetD [D.Element] ev' x'
+     -> WidgetD [D.Element] (Either ev ev') (x, x')
+vert w w' (x, x') = fmap (\(ev, y) -> (Left ev, (y, x'))) (w x)
                     `D.vert`
-                    fmap (\(ev, y') -> (ev, (x, y'))) (w' x')
+                    fmap (\(ev, y') -> (Right ev, (x, y'))) (w' x')
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
@@ -78,7 +79,8 @@ runServer pc = do
                      , unselectedMake (t 4) ]
         where t i = "id" <> T.pack (show (i :: Int)) <> T.pack (show (s :: Int))
 
-  loopGUI conn (elementRadio `vert` elementRadio) (initialGui 1, initialGui 2)
+  loopGUI conn (elementRadio `vert` B.buttonC)
+               (initialGui 1, B.buttonMake "inactive" "idb1")
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do

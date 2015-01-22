@@ -46,6 +46,7 @@ guiCircle :: Circle -> GUICircle
 guiCircle c = GUICircle { gcName  = _cName c
                         , gcColor = (circleColor . L.view cState) c }
 
+-- TODO: duplication with button
 circle :: Circle -> Canvas CircleEvent
 circle c@(Circle name _) = Doc [guiCircle c] parseMessage
   where parseMessage message = case T.split (== ',') message
