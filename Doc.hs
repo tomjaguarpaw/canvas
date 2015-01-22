@@ -12,6 +12,7 @@ import qualified Text.Blaze.Html5.Attributes as AH
 import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
+import           Control.Applicative (liftA2)
 
 type Message = T.Text
 
@@ -32,10 +33,7 @@ nullCanvas :: Canvas a
 nullCanvas = Doc [] (const Nothing)
 
 horiz :: Canvas a -> Canvas a -> Canvas a
-horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (foo xh yh)
-
-foo :: (t1 -> Maybe t) -> (t1 -> Maybe t) -> t1 -> Maybe t
-foo xh yh = \message -> firstJust (xh message) (yh message)
+horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (liftA2 firstJust xh yh)
 
 firstJust :: Maybe a -> Maybe a -> Maybe a
 firstJust (Just a) _ = Just a
