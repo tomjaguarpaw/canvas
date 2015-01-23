@@ -101,4 +101,4 @@ renderElements :: Doc [Element] a -> T.Text
 renderElements (Doc d _) = (renderHtml . mapM_ elementHtml) d
 
 elementOfCircles :: Doc [GUICircle] a -> Doc [Element] a
-elementOfCircles (Doc cs f) = Doc [GUICircles cs] f
+elementOfCircles = fmap (return . GUICircles)
