@@ -12,7 +12,7 @@ import qualified Text.Blaze.Html5.Attributes as AH
 import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Control.Applicative (liftA2)
+import           Control.Applicative (liftA2, Applicative, pure, (<*>))
 
 type Message = T.Text
 
@@ -22,6 +22,13 @@ type Doc d a = DocF a d
 
 data Element = GUICircles [GUICircle]
              | Button GUIButton
+
+instance Functor (DocF a) where
+  fmap f (Doc a d) = Doc (f a) d
+
+instance Applicative (DocF a) where
+  pure x = Doc x (const Nothing)
+  Doc df ff <*> Doc dx fx = Doc (df dx) (liftA2 firstJust ff fx)
 
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
 fmapResponse f (Doc cs h) = Doc cs ((fmap . fmap) f h)
