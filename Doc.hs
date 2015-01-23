@@ -45,10 +45,10 @@ nullCanvas :: Canvas a
 nullCanvas = Doc [] (const Nothing)
 
 horiz :: Canvas a -> Canvas a -> Canvas a
-horiz (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (liftA2 firstJust xh yh)
+horiz = liftA2 (++)
 
 vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
-vert  (Doc xs xh) (Doc ys yh) = Doc (xs ++ ys) (liftA2 firstJust xh yh)
+vert = liftA2 (++)
 
 firstJust :: Maybe a -> Maybe a -> Maybe a
 firstJust (Just a) _ = Just a
