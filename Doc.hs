@@ -21,8 +21,8 @@ data Doc d a = Doc d (Message -> Maybe a)
 data Element = GUICircles [GUICircle]
              | Button GUIButton
 
-instance Functor (Doc d) where
-  fmap f (Doc cs h) = Doc cs ((fmap . fmap) f h)
+fmapResponse :: (a -> b) -> Doc d a -> Doc d b
+fmapResponse f (Doc cs h) = Doc cs ((fmap . fmap) f h)
 
 type Canvas a = Doc [GUICircle] a
 

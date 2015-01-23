@@ -37,4 +37,4 @@ button b = D.Doc [D.Button (guiButton b)] parseMessage
                                   _ -> Nothing
 
 buttonC :: Button -> D.Doc [D.Element] (ButtonEvent, Button)
-buttonC b = fmap (\ev -> (ev, buttonHandle ev b)) (button b)
+buttonC b = D.fmapResponse (\ev -> (ev, buttonHandle ev b)) (button b)

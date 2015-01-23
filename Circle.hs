@@ -8,6 +8,7 @@ import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import           Doc                (Doc(Doc), Canvas, GUICircle(GUICircle),
                                      gcName, gcColor)
+import qualified Doc                as D
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -57,17 +58,17 @@ circle c@(Circle name _) = Doc [guiCircle c] parseMessage
                                   _ -> Nothing
 
 circleC :: Circle -> Canvas (CircleEvent, Circle)
-circleC c = fmap (\ev -> (ev, circleHandle ev c)) (circle c)
+circleC c = D.fmapResponse (\ev -> (ev, circleHandle ev c)) (circle c)
 
 data Selected = Selected Circle
 
 data Unselected = Unselected Circle
 
 selectedC :: Selected -> Canvas (CircleEvent, Selected)
-selectedC s@(Selected c) = fmap (\ev -> (ev, selectedHandle ev s)) (circle c)
+selectedC s@(Selected c) = D.fmapResponse (\ev -> (ev, selectedHandle ev s)) (circle c)
 
 unselectedC :: Unselected -> Canvas (CircleEvent, Unselected)
-unselectedC s@(Unselected c) = fmap (\ev -> (ev, unselectedHandle ev s)) (circle c)
+unselectedC s@(Unselected c) = D.fmapResponse (\ev -> (ev, unselectedHandle ev s)) (circle c)
 
 unselectedHandle :: CircleEvent -> Unselected -> Unselected
 unselectedHandle ev (Unselected c) = Unselected ((case ev of MouseClick -> id

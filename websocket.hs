@@ -51,7 +51,7 @@ data ComponentD d ev ev' x xz xa = Component { widget  :: WidgetD d ev x
                                              , handler :: Handler  ev ev' xz x xa }
 
 componentCanvas :: ComponentD d ev ev' x xz xa -> (xz -> x) -> xz -> D.Doc d (ev', xa)
-componentCanvas cg x xz = fmap (\ex' -> handler cg ex' xz) (widget cg (x xz))
+componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg (x xz))
 
 radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
        -> Component e2 ev' o (RadioO x o) (Radio x o)
@@ -102,7 +102,7 @@ runServer pc = do
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
-  let canvas' = (fmap . fmap) snd canvas
+  let canvas' = (fmap . D.fmapResponse) snd canvas
 
   msg  <- WS.receiveData conn
 
