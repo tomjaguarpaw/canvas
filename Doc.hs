@@ -16,7 +16,9 @@ import           Control.Applicative (liftA2)
 
 type Message = T.Text
 
-data Doc d a = Doc d (Message -> Maybe a)
+data DocF a d = Doc d (Message -> Maybe a)
+
+type Doc d a = DocF a d
 
 data Element = GUICircles [GUICircle]
              | Button GUIButton

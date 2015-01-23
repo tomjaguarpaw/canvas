@@ -6,7 +6,7 @@ module Circle where
 
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
-import           Doc                (Doc(Doc), Canvas, GUICircle(GUICircle),
+import           Doc                (Canvas, GUICircle(GUICircle),
                                      gcName, gcColor)
 import qualified Doc                as D
 
@@ -49,7 +49,7 @@ guiCircle c = GUICircle { gcName  = _cName c
 
 -- TODO: duplication with button
 circle :: Circle -> Canvas CircleEvent
-circle c@(Circle name _) = Doc [guiCircle c] parseMessage
+circle c@(Circle name _) = D.Doc [guiCircle c] parseMessage
   where parseMessage message = case T.split (== ',') message
                                of [theName, theEvent] ->
                                     if theName == name
