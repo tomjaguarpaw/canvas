@@ -100,3 +100,6 @@ renderElements (Doc d _) = (renderHtml . mapM_ elementHtml) d
 
 elementOfCircles :: Doc [GUICircle] a -> Doc [Element] a
 elementOfCircles = fmap (return . GUICircles)
+
+widgetHandler :: (ev -> b -> a) -> (b -> Doc d ev) -> b -> Doc d (ev, a)
+widgetHandler f w x = fmapResponse (\ev -> (ev, f ev x)) (w x)

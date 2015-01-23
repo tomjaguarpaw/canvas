@@ -57,17 +57,19 @@ circle c@(Circle name _) = D.Doc [guiCircle c] parseMessage
                                   _ -> Nothing
 
 circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)
-circleC c = D.fmapResponse (\ev -> (ev, circleHandle ev c)) (circle c)
+circleC = D.widgetHandler circleHandle circle
 
 data Selected = Selected Circle
 
 data Unselected = Unselected Circle
 
 selectedC :: Selected -> Doc [GUICircle] (CircleEvent, Selected)
-selectedC s@(Selected c) = D.fmapResponse (\ev -> (ev, selectedHandle ev s)) (circle c)
+selectedC = D.widgetHandler selectedHandle (circle . unselected)
+  where unselected (Selected s) = s
 
 unselectedC :: Unselected -> Doc [GUICircle] (CircleEvent, Unselected)
-unselectedC s@(Unselected c) = D.fmapResponse (\ev -> (ev, unselectedHandle ev s)) (circle c)
+unselectedC = D.widgetHandler unselectedHandle (circle . ununselected)
+  where ununselected (Unselected s) = s
 
 unselectedHandle :: CircleEvent -> Unselected -> Unselected
 unselectedHandle ev (Unselected c) = Unselected ((case ev of MouseClick -> id
