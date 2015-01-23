@@ -33,18 +33,16 @@ instance Applicative (DocF a) where
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
 fmapResponse f (Doc cs h) = Doc cs ((fmap . fmap) f h)
 
-type Canvas a = Doc [GUICircle] a
-
 data GUICircle = GUICircle { gcName  :: T.Text
                            , gcColor :: T.Text } deriving Show
 
 data GUIButton = GUIButton { gbName :: T.Text
                            , gbText :: T.Text }
 
-nullCanvas :: Canvas a
+nullCanvas :: Doc [GUICircle] a
 nullCanvas = Doc [] (const Nothing)
 
-horiz :: Canvas a -> Canvas a -> Canvas a
+horiz :: Doc [GUICircle] a -> Doc [GUICircle] a -> Doc [GUICircle] a
 horiz = liftA2 (++)
 
 vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
@@ -64,7 +62,7 @@ circlesSvg cs = (documentSvg h w . sequence_ . package [0..]) cs
         w = 100 * length cs
         h = 100
 
-render :: Canvas a -> T.Text
+render :: Doc [GUICircle] a -> T.Text
 render (Doc cs _) = renderHtml (circlesSvg cs)
 
 documentSvg :: Int -> Int -> S.Svg -> S.Svg

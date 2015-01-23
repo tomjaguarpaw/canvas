@@ -6,8 +6,7 @@ module Circle where
 
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
-import           Doc                (Canvas, GUICircle(GUICircle),
-                                     gcName, gcColor)
+import           Doc                (GUICircle(GUICircle), Doc, gcName, gcColor)
 import qualified Doc                as D
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
@@ -48,7 +47,7 @@ guiCircle c = GUICircle { gcName  = _cName c
                         , gcColor = (circleColor . L.view cState) c }
 
 -- TODO: duplication with button
-circle :: Circle -> Canvas CircleEvent
+circle :: Circle -> Doc [GUICircle] CircleEvent
 circle c@(Circle name _) = D.Doc [guiCircle c] parseMessage
   where parseMessage message = case T.split (== ',') message
                                of [theName, theEvent] ->
@@ -57,17 +56,17 @@ circle c@(Circle name _) = D.Doc [guiCircle c] parseMessage
                                     else Nothing
                                   _ -> Nothing
 
-circleC :: Circle -> Canvas (CircleEvent, Circle)
+circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)
 circleC c = D.fmapResponse (\ev -> (ev, circleHandle ev c)) (circle c)
 
 data Selected = Selected Circle
 
 data Unselected = Unselected Circle
 
-selectedC :: Selected -> Canvas (CircleEvent, Selected)
+selectedC :: Selected -> Doc [GUICircle] (CircleEvent, Selected)
 selectedC s@(Selected c) = D.fmapResponse (\ev -> (ev, selectedHandle ev s)) (circle c)
 
-unselectedC :: Unselected -> Canvas (CircleEvent, Unselected)
+unselectedC :: Unselected -> Doc [GUICircle] (CircleEvent, Unselected)
 unselectedC s@(Unselected c) = D.fmapResponse (\ev -> (ev, unselectedHandle ev s)) (circle c)
 
 unselectedHandle :: CircleEvent -> Unselected -> Unselected
