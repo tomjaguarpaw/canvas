@@ -8,6 +8,7 @@ import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import           Doc                (GUICircle(GUICircle), Doc, gcName, gcColor)
 import qualified Doc                as D
+import           Control.Monad      (guard)
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
@@ -51,10 +52,9 @@ circle c = D.Doc $ do
   n <- D.unique
   return ([guiCircle n c], parseMessage n)
   where parseMessage n message = case T.split (== ',') message
-                                 of [theName, theEvent] ->
-                                      if theName == n
-                                      then parseCircleEvent theEvent
-                                      else Nothing
+                                 of [theName, theEvent] -> do
+                                      guard (theName == n)
+                                      parseCircleEvent theEvent
                                     _ -> Nothing
 
 circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)

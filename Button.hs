@@ -7,6 +7,7 @@ module Button where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
+import           Control.Monad      (guard)
 
 data ButtonEvent = MouseClick
 data Button = Button { _bText :: T.Text } -- delete this field
@@ -31,10 +32,9 @@ button b = D.Doc $ do
   n <- D.unique
   return ([D.Button (guiButton n b)], parseMessage n)
   where parseMessage n message = case T.split (== ',') message
-                                 of [theName, theEvent] ->
-                                      if theName == n
-                                      then parseButtonEvent theEvent
-                                      else Nothing
+                                 of [theName, theEvent] -> do
+                                      guard (theName == n)
+                                      parseButtonEvent theEvent
                                     _ -> Nothing
 
 buttonC :: Button -> D.Doc [D.Element] (ButtonEvent, Button)

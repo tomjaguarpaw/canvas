@@ -11,6 +11,7 @@ import qualified Control.Lens       as L
 import qualified Doc                as D
 import           Text.Read          (readMaybe)
 import           Control.Applicative ((<*>), pure)
+import           Control.Monad      (guard)
 
 data TextEntryEvent = Input T.Text Int
 data TextEntry = TextEntry { _tText     :: T.Text
@@ -42,12 +43,11 @@ textEntry b = D.Doc $ do
   n <- D.unique
   return ([D.TextEntry (guiTextEntry n b)], parseMessage n)
   where parseMessage n message = case T.split (== ',') message
-                                 of [theName, theEvent, theValue, pos] ->
-                                      if theName == n
-                                      then parseTextEntryEvent theEvent
+                                 of [theName, theEvent, theValue, pos] -> do
+                                      guard (theName == n)
+                                      parseTextEntryEvent theEvent
                                            <*> pure theValue
                                            <*> (readMaybe (T.unpack pos) :: Maybe Int)
-                                      else Nothing
                                     _ -> Nothing
 
 textEntryC :: TextEntry -> D.Doc [D.Element] (TextEntryEvent, TextEntry)
