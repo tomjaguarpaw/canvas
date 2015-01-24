@@ -35,6 +35,12 @@ function mouseout(theid)
   if ("WebSocket" in window)
   {
      var ws = new WebSocket("ws://localhost:9998/echo");
+
+     ws.onopen = function (e)
+     {
+         ws.send("ignored");
+     }
+
      ws.onmessage = function (evt)
      {
          parsed = eval(evt.data);
@@ -56,9 +62,6 @@ function mouseout(theid)
 </script>
 </head>
 <body>
-<div id="sse">
-   <a href="javascript:ws.send(2)">Run WebSocket</a>
-</div>
 
 <div id="frame">
 </div>
