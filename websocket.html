@@ -49,8 +49,8 @@ function mouseout(theid)
   }
   else
   {
-     // The browser doesn't support WebSocket
-     alert("WebSocket NOT supported by your Browser!");
+     document.getElementById("messages").innerHTML
+              += "<p>WebSocket NOT supported by your Browser!</p>"
   }
 
 </script>
