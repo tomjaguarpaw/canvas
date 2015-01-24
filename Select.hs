@@ -14,7 +14,7 @@ import qualified Data.List.NonEmpty as NEL
 import           Text.Read          (readMaybe)
 
 data SelectEvent = Choice Int
-data Select = Select { _bRadio :: R.Radio T.Text T.Text }
+data Select = Select { _sRadio :: R.Radio T.Text T.Text }
 $(L.makeLenses ''Select)
 
 parseSelectEvent :: T.Text -> Maybe (Int -> SelectEvent)
@@ -22,13 +22,13 @@ parseSelectEvent = \case "choose" -> Just Choice
                          _        -> Nothing
 
 selectMake :: NEL.NonEmpty T.Text -> Select
-selectMake l = Select { _bRadio = R.chooseFirstNEL l }
+selectMake l = Select { _sRadio = R.chooseFirstNEL l }
 
 selectHandle :: SelectEvent -> Select -> Select
-selectHandle (Choice n) = L.over bRadio (R.chooseIndex n)
+selectHandle (Choice n) = L.over sRadio (R.chooseIndex n)
 
 guiSelect :: T.Text -> Select -> D.GUISelect
-guiSelect n s = D.GUISelect n (_bRadio s)
+guiSelect n s = D.GUISelect n (_sRadio s)
 
 -- TODO: duplication with circle
 select :: Select -> D.Doc [D.Element] SelectEvent
