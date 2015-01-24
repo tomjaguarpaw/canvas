@@ -13,8 +13,7 @@ data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
 data CircleState = CircleState { _csHovered  :: Bool
                                , _csSelected :: Bool } deriving Show
 
-data Circle = Circle { _cName  :: T.Text
-                     , _cState :: CircleState } deriving Show
+data Circle = Circle { _cState :: CircleState } deriving Show
 $(L.makeLenses ''Circle)
 $(L.makeLenses ''CircleState)
 
@@ -34,27 +33,29 @@ circleColor c = case (L.view csHovered c, L.view csSelected c)
                    (False, True)  -> "#ff0000"
                    (False, False) -> "#ffffff"
 
-circleMake :: T.Text -> Circle
-circleMake n = Circle n (CircleState False False)
+circleMake :: Circle
+circleMake = Circle (CircleState False False)
 
 circleHandle :: CircleEvent -> Circle -> Circle
 circleHandle MouseOver  = L.set  (cState.csHovered)  True
 circleHandle MouseOut   = L.set  (cState.csHovered)  False
 circleHandle MouseClick = L.over (cState.csSelected) not
 
-guiCircle :: Circle -> GUICircle
-guiCircle c = GUICircle { gcName  = _cName c
-                        , gcColor = (circleColor . L.view cState) c }
+guiCircle :: T.Text -> Circle -> GUICircle
+guiCircle n c = GUICircle { gcName  = n
+                          , gcColor = (circleColor . L.view cState) c }
 
 -- TODO: duplication with button
 circle :: Circle -> Doc [GUICircle] CircleEvent
-circle c@(Circle name _) = D.Doc [guiCircle c] parseMessage
-  where parseMessage message = case T.split (== ',') message
-                               of [theName, theEvent] ->
-                                    if theName == name
-                                    then parseCircleEvent theEvent
-                                    else Nothing
-                                  _ -> Nothing
+circle c = D.Doc $ do
+  n <- D.unique
+  return ([guiCircle n c], parseMessage n)
+  where parseMessage n message = case T.split (== ',') message
+                                 of [theName, theEvent] ->
+                                      if theName == n
+                                      then parseCircleEvent theEvent
+                                      else Nothing
+                                    _ -> Nothing
 
 circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)
 circleC = D.widgetHandler circleHandle circle
@@ -86,8 +87,8 @@ selectedOfUnselected (Unselected c) = Selected (L.set (cState.csSelected) True c
 unselectedOfSelected :: Selected -> Unselected
 unselectedOfSelected (Selected c) = Unselected (L.set (cState.csSelected) False c)
 
-selectedMake :: T.Text -> Selected
-selectedMake = Selected . L.set (cState.csSelected) True . circleMake
+selectedMake :: Selected
+selectedMake = (Selected . L.set (cState.csSelected) True) circleMake
 
-unselectedMake :: T.Text -> Unselected
-unselectedMake = Unselected . circleMake
+unselectedMake :: Unselected
+unselectedMake = Unselected circleMake

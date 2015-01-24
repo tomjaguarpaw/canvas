@@ -9,32 +9,33 @@ import qualified Control.Lens       as L
 import qualified Doc                as D
 
 data ButtonEvent = MouseClick
-data Button = Button { _bName :: T.Text
-                     , _bText :: T.Text }
+data Button = Button { _bText :: T.Text } -- delete this field
 $(L.makeLenses ''Button)
 
 parseButtonEvent :: T.Text -> Maybe ButtonEvent
 parseButtonEvent = \case "click" -> Just MouseClick
                          _       -> Nothing
 
-buttonMake :: T.Text -> T.Text -> Button
-buttonMake t n = Button { _bName = n, _bText = t }
+buttonMake :: T.Text -> Button
+buttonMake t = Button { _bText = t }
 
 buttonHandle :: ButtonEvent -> Button -> Button
 buttonHandle _ = id
 
-guiButton :: Button -> D.GUIButton
-guiButton b = D.GUIButton (_bName b) (_bText b)
+guiButton :: T.Text -> Button -> D.GUIButton
+guiButton n b = D.GUIButton n (_bText b)
 
 -- TODO: duplication with circle
 button :: Button -> D.Doc [D.Element] ButtonEvent
-button b = D.Doc [D.Button (guiButton b)] parseMessage
-  where parseMessage message = case T.split (== ',') message
-                               of [theName, theEvent] ->
-                                    if theName == (_bName b)
-                                    then parseButtonEvent theEvent
-                                    else Nothing
-                                  _ -> Nothing
+button b = D.Doc $ do
+  n <- D.unique
+  return ([D.Button (guiButton n b)], parseMessage n)
+  where parseMessage n message = case T.split (== ',') message
+                                 of [theName, theEvent] ->
+                                      if theName == n
+                                      then parseButtonEvent theEvent
+                                      else Nothing
+                                    _ -> Nothing
 
 buttonC :: Button -> D.Doc [D.Element] (ButtonEvent, Button)
 buttonC = D.widgetHandler buttonHandle button

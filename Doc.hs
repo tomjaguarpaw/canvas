@@ -14,10 +14,11 @@ import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Control.Applicative (liftA2, Applicative, pure, (<*>))
 import qualified Control.Monad.Trans.State as St
+import qualified Control.Lens       as L
 
 type Message = T.Text
 
-data DocF a d = Doc d (Message -> Maybe a)
+data DocF a d = Doc (US (d, Message -> Maybe a))
 
 type Doc d a = DocF a d
 
@@ -27,21 +28,22 @@ data Element = GUICircles [GUICircle]
 
 type US = St.State Int
 
-unique :: US String
+unique :: US T.Text
 unique = do
   i <- St.get
   St.modify (+1)
-  return (show i)
+  (return . T.pack . show) i
 
 instance Functor (DocF a) where
-  fmap f (Doc a d) = Doc (f a) d
+  fmap f (Doc t) = Doc (L.over (L.mapped.L._1) f t)
 
 instance Applicative (DocF a) where
-  pure x = Doc x (const Nothing)
-  Doc df ff <*> Doc dx fx = Doc (df dx) (liftA2 firstJust ff fx)
+  pure x = Doc (pure (x, const Nothing))
+  Doc tf <*> Doc tt = Doc (liftA2 (<**>) tf tt)
+    where (df, ff) <**> (dx, fx) = (df dx, liftA2 firstJust ff fx)
 
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
-fmapResponse f (Doc cs h) = Doc cs ((fmap . fmap) f h)
+fmapResponse f (Doc t) = Doc (L.over (L.mapped.L._2.L.mapped.L.mapped) f t)
 
 data GUICircle = GUICircle { gcName  :: T.Text
                            , gcColor :: T.Text } deriving Show
@@ -51,9 +53,6 @@ data GUIButton = GUIButton { gbName :: T.Text
 
 data GUITextEntry = GUITextEntry { gtName :: T.Text
                                  , gtText :: T.Text }
-
-nullCanvas :: Doc [GUICircle] a
-nullCanvas = Doc [] (const Nothing)
 
 horiz :: Doc [GUICircle] a -> Doc [GUICircle] a -> Doc [GUICircle] a
 horiz = liftA2 (++)
@@ -67,7 +66,7 @@ firstJust Nothing (Just b) = Just b
 firstJust Nothing Nothing = Nothing
 
 handleMessage :: Doc d a -> Message -> Maybe a
-handleMessage (Doc _ h) = h
+handleMessage (Doc t) = snd (St.evalState t 0)
 
 circlesSvg :: [GUICircle] -> S.Svg
 circlesSvg cs = (documentSvg h w . sequence_ . package [0..]) cs
@@ -112,7 +111,10 @@ textEntryHtml t = H.input ! AH.type_ "text"
                           ! AH.value (B.toValue (gtText t))
 
 renderElements :: Doc [Element] a -> T.Text
-renderElements (Doc d _) = (renderHtml . mapM_ elementHtml) d
+renderElements (Doc t) = (renderHtml
+                          . mapM_ elementHtml
+                          . fst
+                          . flip St.evalState 0) t
 
 elementOfCircles :: Doc [GUICircle] a -> Doc [Element] a
 elementOfCircles = fmap (return . GUICircles)

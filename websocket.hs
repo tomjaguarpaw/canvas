@@ -16,8 +16,6 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedMake, unselectedMake,
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
-import           Data.Monoid        ((<>))
-import qualified Data.Text.Lazy     as T
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -92,14 +90,11 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui s = Chosen (selectedMake (t 1))
-                     [ unselectedMake (t 2)
-                     , unselectedMake (t 3)
-                     , unselectedMake (t 4) ]
-        where t i = "id" <> T.pack (show (i :: Int)) <> T.pack (show (s :: Int))
+  let initialGui = Chosen selectedMake
+                          [ unselectedMake, unselectedMake, unselectedMake ]
 
   loopGUI conn (resetter `vert` T.textEntryC)
-               ((initialGui 1, B.buttonMake "Reset" "idb1"), T.textEntryMake "foo" "idt1")
+               ((initialGui, B.buttonMake "Reset"), T.textEntryMake "foo")
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
