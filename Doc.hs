@@ -13,6 +13,7 @@ import qualified Text.Blaze.Svg11   as S
 import qualified Text.Blaze.Svg11.Attributes as AS
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Control.Applicative (liftA2, Applicative, pure, (<*>))
+import qualified Control.Monad.Trans.State as St
 
 type Message = T.Text
 
@@ -23,6 +24,14 @@ type Doc d a = DocF a d
 data Element = GUICircles [GUICircle]
              | Button GUIButton
              | TextEntry GUITextEntry
+
+type US = St.State Int
+
+unique :: US String
+unique = do
+  i <- St.get
+  St.modify (+1)
+  return (show i)
 
 instance Functor (DocF a) where
   fmap f (Doc a d) = Doc (f a) d
