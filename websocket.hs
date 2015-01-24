@@ -17,6 +17,7 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedMake, unselectedMake,
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
+import qualified Control.Lens       as L
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -87,6 +88,13 @@ vertW cl cr t = fl t `D.vert` fr t
   where fl = componentCanvas cl fst
         fr = componentCanvas cr snd
 
+textSelect :: WidgetD [D.Element] () (T.TextEntry, S.Select)
+textSelect = vertW Component { widget  = T.textEntryC
+                             , handler = \(T.Input i _, t) (_, s) ->
+                                             ((), (t, L.set (S.sRadio.R.chosen) i s)) }
+                   Component { widget  = S.selectC
+                             , handler = \(_, y) (x, _) -> ((), (L.set T.tText (L.view (S.sRadio.R.chosen) y) x, y)) }
+
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
@@ -94,9 +102,9 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn ((resetter `vert` T.textEntryC) `vert` S.selectC)
-               (((initialGui, B.buttonMake "Reset"), T.textEntryMake "foo"),
-                S.selectMake ("foo" NEL.:| ["bar", "baz"]))
+  loopGUI conn (resetter `vert` textSelect)
+               (((initialGui, B.buttonMake "Reset"),
+                 (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
