@@ -19,6 +19,7 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedC, unselectedC)
 import qualified Control.Lens       as L
 import qualified Data.Text.Lazy     as DT
+import           Control.Applicative ((<$>), (<*>))
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -99,6 +100,21 @@ textSelect = vertW Component { widget  = T.textEntryC
                              in ((), ((L.set T.tText newText
                                        . L.set T.tPosition ((fromIntegral . DT.length) newText)) x, y)) }
 
+textSelect' :: WidgetD [D.Element] () (T.TextEntry, S.Select)
+textSelect' o = (++) <$> D.fmapResponse (\(ev, newte) -> ((), (newte,
+                                                 L.set (S.sRadio.R.chosen) (L.view T.tText newte) (old se))))
+                                        (T.textEntryC (old te))
+
+
+                     <*> D.fmapResponse (\(ev, newse) -> ((),
+                           let newText = L.view (S.sRadio.R.chosen) newse
+                           in ((L.set T.tText newText
+                                . L.set T.tPosition ((fromIntegral . DT.length) newText)) (old te), newse)))
+                                        (S.selectC (old se))
+  where old = ($ o)
+        te  = fst
+        se  = snd
+
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
@@ -106,7 +122,7 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn (resetter `vert` textSelect)
+  loopGUI conn (resetter `vert` textSelect')
                (((initialGui, B.buttonMake "Reset"),
                  (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
 
