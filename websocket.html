@@ -38,7 +38,7 @@ function mouseout(theid)
      ws.onmessage = function (evt)
      {
          parsed = eval(evt.data);
-         document.getElementById("foo").innerHTML = parsed.html;
+         document.getElementById("frame").innerHTML = parsed.html;
          eval(parsed.js);
      };
      ws.onclose = function()
@@ -59,7 +59,7 @@ function mouseout(theid)
    <a href="javascript:ws.send(2)">Run WebSocket</a>
 </div>
 
-<div id="foo">
+<div id="frame">
 </div>
 
 </body>
