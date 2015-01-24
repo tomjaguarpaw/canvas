@@ -4,6 +4,7 @@
 module Doc where
 
 import qualified Data.Text.Lazy     as T
+import qualified Data.Text          as ST
 import           Data.Monoid        ((<>))
 import qualified Text.Blaze         as B
 import           Text.Blaze.Html5   ((!))
@@ -15,6 +16,10 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Control.Applicative (liftA2, Applicative, pure, (<*>))
 import qualified Control.Monad.Trans.State as St
 import qualified Control.Lens       as L
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Aeson         as Ae
+import qualified Data.Aeson.Encode  as AeE
+import qualified Data.Text.Lazy.Builder as TB
 
 type Message = T.Text
 
@@ -123,14 +128,24 @@ textEntryHtml t =  (html, js) where
   theId = "id" <> gtName t
 
 renderElements :: Doc [Element] a -> T.Text
-renderElements (Doc t) = "({ \"html\" : '" <> html <> "'\n" <>
-                         ", \"js\"    : '" <> js <> "' })"
+renderElements (Doc t) = (embracket
+                          . encodeObject
+                          . HashMap.fromList) [("html", html), ("js", js)]
+
   where total = (map elementHtml . fst . flip St.evalState 0) t
         html = (renderHtml . sequence_ . map fst) total
-        js = (T.intercalate ";\\n" . concatMap snd) total
+        js = (T.intercalate ";\n" . concatMap snd) total
+        embracket x = "(" <> x <> ")"
 
 elementOfCircles :: Doc [GUICircle] a -> Doc [Element] a
 elementOfCircles = fmap (return . GUICircles)
+
+encodeObject :: HashMap.HashMap ST.Text T.Text -> T.Text
+encodeObject = TB.toLazyText
+               . AeE.encodeToTextBuilder
+               . Ae.toJSON
+               . Ae.Object
+               . HashMap.map (Ae.String . T.toStrict)
 
 widgetHandler :: (ev -> b -> a) -> (b -> Doc d ev) -> b -> Doc d (ev, a)
 widgetHandler f w x = fmapResponse (\ev -> (ev, f ev x)) (w x)
