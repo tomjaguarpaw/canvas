@@ -62,9 +62,6 @@ circlesSvg cs = (documentSvg h w . sequence_ . package [0..]) cs
         w = 100 * length cs
         h = 100
 
-render :: Doc [GUICircle] a -> T.Text
-render (Doc cs _) = renderHtml (circlesSvg cs)
-
 documentSvg :: Int -> Int -> S.Svg -> S.Svg
 documentSvg h w = S.svg ! AS.width (B.toValue w)
                         ! AS.height (B.toValue h)
