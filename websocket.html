@@ -21,9 +21,9 @@ function click_(theid)
     ws.send(theid + ",click");
 }
 
-function input_(theid, value)
+function input_(theid, value, selectionStart)
 {
-    ws.send(theid + ",input," + value);
+    ws.send(theid + ",input," + value + "," + selectionStart);
 }
 
 function mouseout(theid)
@@ -36,9 +36,11 @@ function mouseout(theid)
   {
      // Let us open a web socket
      var ws = new WebSocket("ws://localhost:9998/echo");
-     ws.onmessage = function (evt) 
+     ws.onmessage = function (evt)
      { 
-        document.getElementById("foo").innerHTML = evt.data;
+         parsed = eval(evt.data);
+         document.getElementById("foo").innerHTML = parsed.html;
+         eval(parsed.js);
      };
      ws.onclose = function()
      { 

@@ -51,8 +51,10 @@ data GUICircle = GUICircle { gcName  :: T.Text
 data GUIButton = GUIButton { gbName :: T.Text
                            , gbText :: T.Text }
 
-data GUITextEntry = GUITextEntry { gtName :: T.Text
-                                 , gtText :: T.Text }
+data GUITextEntry = GUITextEntry { gtName     :: T.Text
+                                 , gtText     :: T.Text
+                                 , gtFocused  :: Bool
+                                 , gtPosition :: Int }
 
 horiz :: Doc [GUICircle] a -> Doc [GUICircle] a -> Doc [GUICircle] a
 horiz = liftA2 (++)
@@ -68,8 +70,8 @@ firstJust Nothing Nothing = Nothing
 handleMessage :: Doc d a -> Message -> Maybe a
 handleMessage (Doc t) = snd (St.evalState t 0)
 
-circlesSvg :: [GUICircle] -> S.Svg
-circlesSvg cs = (documentSvg h w . sequence_ . package [0..]) cs
+circlesSvg :: [GUICircle] -> (S.Svg, [a])
+circlesSvg cs = ((documentSvg h w . sequence_ . package [0..]) cs, [])
   where package = zipWith (\i c -> circleSvg (50 + i * 100) 50 (B.toValue (gcColor c)) (B.toValue (gcName c)))
         w = 100 * length cs
         h = 100
@@ -94,27 +96,38 @@ circleSvg cx cy color name =
 handler :: S.AttributeValue -> S.AttributeValue -> S.AttributeValue
 handler h n = h <> "('" <> n <> "')"
 
-buttonHtml :: GUIButton -> H.Html
-buttonHtml b = (H.button ! AH.type_ "button"
+buttonHtml :: GUIButton -> (H.Html, [a])
+buttonHtml b = (html, [])
+  where html = (H.button ! AH.type_ "button"
                          ! AH.onclick (handler "click_" (B.toValue (gbName b))))
-                         (H.toHtml (gbText b))
+                 (H.toHtml (gbText b))
 
-elementHtml :: Element -> H.Html
-elementHtml e = do case e of GUICircles gs -> circlesSvg gs
-                             Button t      -> buttonHtml t
-                             TextEntry t   -> textEntryHtml t
-                   H.br
+elementHtml :: Element -> (H.Html, [T.Text])
+elementHtml e = let (html, js) = case e of GUICircles gs -> circlesSvg gs
+                                           Button t      -> buttonHtml t
+                                           TextEntry t   -> textEntryHtml t
+                in (html >> H.br, js)
 
-textEntryHtml :: GUITextEntry -> H.Html
-textEntryHtml t = H.input ! AH.type_ "text"
-                          ! AH.oninput (B.toValue ("input_('" <> B.toValue (gtName t) <> "',this.value)"))
-                          ! AH.value (B.toValue (gtText t))
+textEntryHtml :: GUITextEntry -> (H.Html, [T.Text])
+textEntryHtml t =  (html, js) where
+  html = do
+    H.input ! AH.type_ "text"
+            ! AH.oninput (B.toValue ("input_('" <> B.toValue (gtName t) <> "',this.value,this.selectionStart)"))
+            ! AH.value (B.toValue (gtText t))
+            ! AH.id (B.toValue theId)
+  js = if gtFocused t
+       then [ "document.getElementById(\"" <> theId <> "\").focus()"
+            , "document.getElementById(\"" <> theId <> "\").selectionStart = "
+              <> T.pack (show (gtPosition t)) ]
+       else []
+  theId = "id" <> gtName t
 
 renderElements :: Doc [Element] a -> T.Text
-renderElements (Doc t) = (renderHtml
-                          . mapM_ elementHtml
-                          . fst
-                          . flip St.evalState 0) t
+renderElements (Doc t) = "({ \"html\" : '" <> html <> "'\n" <>
+                         ", \"js\"    : '" <> js <> "' })"
+  where total = (map elementHtml . fst . flip St.evalState 0) t
+        html = (renderHtml . sequence_ . map fst) total
+        js = (T.intercalate ";\\n" . concatMap snd) total
 
 elementOfCircles :: Doc [GUICircle] a -> Doc [Element] a
 elementOfCircles = fmap (return . GUICircles)
