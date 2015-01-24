@@ -22,6 +22,7 @@ type Doc d a = DocF a d
 
 data Element = GUICircles [GUICircle]
              | Button GUIButton
+             | TextEntry GUITextEntry
 
 instance Functor (DocF a) where
   fmap f (Doc a d) = Doc (f a) d
@@ -38,6 +39,9 @@ data GUICircle = GUICircle { gcName  :: T.Text
 
 data GUIButton = GUIButton { gbName :: T.Text
                            , gbText :: T.Text }
+
+data GUITextEntry = GUITextEntry { gtName :: T.Text
+                                 , gtText :: T.Text }
 
 nullCanvas :: Doc [GUICircle] a
 nullCanvas = Doc [] (const Nothing)
@@ -90,7 +94,13 @@ buttonHtml b = (H.button ! AH.type_ "button"
 elementHtml :: Element -> H.Html
 elementHtml e = do case e of GUICircles gs -> circlesSvg gs
                              Button t      -> buttonHtml t
+                             TextEntry t   -> textEntryHtml t
                    H.br
+
+textEntryHtml :: GUITextEntry -> H.Html
+textEntryHtml t = H.input ! AH.type_ "text"
+                          ! AH.oninput (handler "input" (B.toValue (gtName t)))
+                          ! AH.value (B.toValue (gtText t))
 
 renderElements :: Doc [Element] a -> T.Text
 renderElements (Doc d _) = (renderHtml . mapM_ elementHtml) d
