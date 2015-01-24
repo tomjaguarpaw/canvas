@@ -21,6 +21,11 @@ function click_(theid)
     ws.send(theid + ",click");
 }
 
+function input_(theid, value)
+{
+    ws.send(theid + ",input," + value);
+}
+
 function mouseout(theid)
 {
     currentMouseOver = null;

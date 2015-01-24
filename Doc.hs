@@ -99,7 +99,7 @@ elementHtml e = do case e of GUICircles gs -> circlesSvg gs
 
 textEntryHtml :: GUITextEntry -> H.Html
 textEntryHtml t = H.input ! AH.type_ "text"
-                          ! AH.oninput (handler "input" (B.toValue (gtName t)))
+                          ! AH.oninput (B.toValue ("input_('" <> B.toValue (gtName t) <> "',this.value)"))
                           ! AH.value (B.toValue (gtText t))
 
 renderElements :: Doc [Element] a -> T.Text

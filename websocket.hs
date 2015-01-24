@@ -9,6 +9,7 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
 import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
+import qualified TextEntry          as T
 import           Doc                (horiz, handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
@@ -97,8 +98,8 @@ runServer pc = do
                      , unselectedMake (t 4) ]
         where t i = "id" <> T.pack (show (i :: Int)) <> T.pack (show (s :: Int))
 
-  loopGUI conn resetter
-               (initialGui 1, B.buttonMake "Reset" "idb1")
+  loopGUI conn (resetter `vert` T.textEntryC)
+               ((initialGui 1, B.buttonMake "Reset" "idb1"), T.textEntryMake "foo" "idt1")
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
