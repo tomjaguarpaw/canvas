@@ -11,7 +11,7 @@ import qualified Doc                as D
 import qualified Button             as B
 import qualified TextEntry          as T
 import qualified Select             as S
-import           Doc                (horiz, handleMessage)
+import           Doc                (handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
                                      selectedMake, unselectedMake,
@@ -20,6 +20,7 @@ import           Circle             (CircleEvent(MouseClick),
 import qualified Control.Lens       as L
 import qualified Data.Text.Lazy     as DT
 import           Control.Applicative ((<$>), (<*>))
+import qualified Control.Applicative as A
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -59,11 +60,16 @@ componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg 
 radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
        -> Component e2 ev' o (RadioO x o) (Radio x o)
        -> Widget ev' (Radio x o)
-radioW cx co = foldl1 horiz
-               . NEL.toList
-               . radioToNEL
-               . fmapRadio fx fo
-               . duplicateRadio
+radioW cx co = (fmap.fmap) (concat . NEL.toList) (radioW' cx co)
+
+radioW' :: ComponentD d e1 ev' x (RadioX x o) xa
+        -> ComponentD d e2 ev' o (RadioO x o) xa
+        -> Radio x o
+        -> D.DocF (ev', xa) (NEL.NonEmpty d)
+radioW' cx co = R.traverseNEL (A.liftA2 (,))
+                . radioToNEL
+                . fmapRadio fx fo
+                . duplicateRadio
   where fx = componentCanvas cx focusedX
         fo = componentCanvas co focusedO
 

@@ -67,9 +67,6 @@ data GUITextEntry = GUITextEntry { gtName     :: T.Text
 data GUISelect = GUISelect { gsName  :: T.Text
                            , gsRadio :: R.Radio T.Text T.Text }
 
-horiz :: Doc [GUICircle] a -> Doc [GUICircle] a -> Doc [GUICircle] a
-horiz = liftA2 (++)
-
 vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
 vert = liftA2 (++)
 
