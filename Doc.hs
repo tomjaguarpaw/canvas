@@ -114,7 +114,7 @@ elementHtml e = let (html, js) = case e of GUICircles gs -> circlesSvg gs
                 in (html >> H.br, js)
 
 textEntryHtml :: GUITextEntry -> (H.Html, [T.Text])
-textEntryHtml t =  (html, js) where
+textEntryHtml t = (html, js) where
   html = do
     H.input ! AH.type_ "text"
             ! AH.oninput (B.toValue ("input_('" <> B.toValue (gtName t) <> "',this.value,this.selectionStart)"))
