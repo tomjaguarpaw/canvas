@@ -43,7 +43,8 @@ function mouseout(theid)
      };
      ws.onclose = function()
      {
-        alert("Connection is closed...");
+         document.getElementById("messages").innerHTML
+              += "<p>Connection closed</p>";
      };
   }
   else
@@ -60,6 +61,9 @@ function mouseout(theid)
 </div>
 
 <div id="frame">
+</div>
+
+<div id="messages">
 </div>
 
 </body>
