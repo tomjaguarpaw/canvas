@@ -3,6 +3,7 @@
 
 module Doc where
 
+import qualified Radio              as R
 import qualified Data.Text.Lazy     as T
 import qualified Data.Text          as ST
 import           Data.Monoid        ((<>))
@@ -20,6 +21,7 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Aeson         as Ae
 import qualified Data.Aeson.Encode  as AeE
 import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.List.NonEmpty as NEL
 
 type Message = T.Text
 
@@ -30,6 +32,7 @@ type Doc d a = DocF a d
 data Element = GUICircles [GUICircle]
              | Button GUIButton
              | TextEntry GUITextEntry
+             | Select GUISelect
 
 type US = St.State Int
 
@@ -60,6 +63,9 @@ data GUITextEntry = GUITextEntry { gtName     :: T.Text
                                  , gtText     :: T.Text
                                  , gtFocused  :: Bool
                                  , gtPosition :: Int }
+
+data GUISelect = GUISelect { gsName  :: T.Text
+                           , gsRadio :: R.Radio T.Text T.Text }
 
 horiz :: Doc [GUICircle] a -> Doc [GUICircle] a -> Doc [GUICircle] a
 horiz = liftA2 (++)
@@ -111,6 +117,7 @@ elementHtml :: Element -> (H.Html, [T.Text])
 elementHtml e = let (html, js) = case e of GUICircles gs -> circlesSvg gs
                                            Button t      -> buttonHtml t
                                            TextEntry t   -> textEntryHtml t
+                                           Select t      -> selectHtml t
                 in (html >> H.br, js)
 
 textEntryHtml :: GUITextEntry -> (H.Html, [T.Text])
@@ -126,6 +133,23 @@ textEntryHtml t = (html, js) where
               <> T.pack (show (gtPosition t)) ]
        else []
   theId = "id" <> gtName t
+
+selectHtml :: GUISelect -> (H.Html, [T.Text])
+selectHtml s = (html, js) where
+  html = do
+    H.select ! (AH.size . B.toValue . max 2 . length . entries) s
+             ! AH.id (B.toValue theId)
+             ! AH.onchange (B.toValue ("choose_('" <> B.toValue (gsName s) <> "',this.selectedIndex)")) $ do
+      mapM_ (H.option . H.toHtml) (entries s)
+
+  js = [ "document.getElementById(\"" <> theId <> "\").selectedIndex = "
+         <> (T.pack . show . R.chosenIndex . gsRadio) s ]
+
+  theId = "id" <> gsName s
+
+  entries :: GUISelect -> [T.Text]
+  entries = NEL.toList . R.radioToNEL . gsRadio
+
 
 renderElements :: Doc [Element] a -> T.Text
 renderElements (Doc t) = (embracket

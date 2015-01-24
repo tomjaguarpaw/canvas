@@ -26,6 +26,11 @@ function input_(theid, value, selectionStart)
     ws.send(theid + ",input," + value + "," + selectionStart);
 }
 
+function choose_(theid, value)
+{
+    ws.send(theid + ",choose," + value);
+}
+
 function mouseout(theid)
 {
     currentMouseOver = null;

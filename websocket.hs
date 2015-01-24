@@ -10,6 +10,7 @@ import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
 import qualified TextEntry          as T
+import qualified Select             as S
 import           Doc                (horiz, handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
@@ -93,8 +94,9 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn (resetter `vert` T.textEntryC)
-               ((initialGui, B.buttonMake "Reset"), T.textEntryMake "foo")
+  loopGUI conn ((resetter `vert` T.textEntryC) `vert` S.selectC)
+               (((initialGui, B.buttonMake "Reset"), T.textEntryMake "foo"),
+                S.selectMake ("foo" NEL.:| ["bar", "baz"]))
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do

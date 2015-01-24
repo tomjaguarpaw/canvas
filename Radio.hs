@@ -151,3 +151,25 @@ chooseFirst ch un r = case d of
   Chosen _ _   -> r
   Unchosen c _  -> choose (ch (focusedO c)) un c
   where d = duplicateRadio r
+
+chooseFirstNEL :: NEL.NonEmpty a -> Radio a a
+chooseFirstNEL (a :| as) = Chosen a as
+
+-- FIXME: do a strict accumulating version
+chosenIndex :: Radio x o -> Int
+chosenIndex (Chosen _ _) = 0
+chosenIndex (Unchosen _ xs) = 1 + chosenIndex xs
+
+chooseIndexNEL :: Int -> NEL.NonEmpty a -> Radio a a
+chooseIndexNEL 0 (a :| as) = Chosen a as
+chooseIndexNEL n as        = case ne as
+                             of Left b -> Chosen b []
+                                Right (b, bs) -> Unchosen b (chooseIndexNEL (n-1) bs)
+
+chooseIndex :: Int -> Radio a a -> Radio a a
+chooseIndex 0 c@(Chosen _ _) = c
+chooseIndex 0 (Unchosen a as) = Chosen a ((NEL.toList . radioToNEL) as)
+chooseIndex n (Chosen a as) = case NEL.nonEmpty as
+                              of Nothing -> Chosen a []
+                                 Just bs -> Unchosen a (chooseIndexNEL (n-1) bs)
+chooseIndex n (Unchosen a as) = Unchosen a (chooseIndex (n-1) as)
