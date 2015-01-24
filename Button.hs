@@ -10,7 +10,7 @@ import qualified Doc                as D
 import           Control.Monad      (guard)
 
 data ButtonEvent = MouseClick
-data Button = Button { _bText :: T.Text } -- delete this field
+data Button = Button { _bText :: T.Text }
 $(L.makeLenses ''Button)
 
 parseButtonEvent :: T.Text -> Maybe ButtonEvent
