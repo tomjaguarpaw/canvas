@@ -101,19 +101,24 @@ textSelect = vertW Component { widget  = T.textEntryC
                                        . L.set T.tPosition ((fromIntegral . DT.length) newText)) x, y)) }
 
 textSelect' :: WidgetD [D.Element] () (T.TextEntry, S.Select)
-textSelect' o = (++) <$> D.fmapResponse (\(ev, newte) -> ((), (newte,
-                                                 L.set (S.sRadio.R.chosen) (L.view T.tText newte) (old se))))
+textSelect' o = (++) <$> D.fmapResponse (\(ev, newte) -> ((), (newte, textSelected newte (old se))))
                                         (T.textEntryC (old te))
 
 
                      <*> D.fmapResponse (\(ev, newse) -> ((),
                            let newText = L.view (S.sRadio.R.chosen) newse
-                           in ((L.set T.tText newText
-                                . L.set T.tPosition ((fromIntegral . DT.length) newText)) (old te), newse)))
+                           in (textUpdated newText (old te), newse)))
                                         (S.selectC (old se))
   where old = ($ o)
         te  = fst
         se  = snd
+
+        textUpdated new = L.set T.tText new
+                          . L.set T.tPosition ((fromIntegral . DT.length) new)
+
+        textSelected new = L.set (S.sRadio.R.chosen) (L.view T.tText new)
+
+
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
