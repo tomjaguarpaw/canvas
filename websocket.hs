@@ -18,6 +18,7 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
 import qualified Control.Lens       as L
+import qualified Data.Text.Lazy     as DT
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
 handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
@@ -93,7 +94,10 @@ textSelect = vertW Component { widget  = T.textEntryC
                              , handler = \(T.Input i _, t) (_, s) ->
                                              ((), (t, L.set (S.sRadio.R.chosen) i s)) }
                    Component { widget  = S.selectC
-                             , handler = \(_, y) (x, _) -> ((), (L.set T.tText (L.view (S.sRadio.R.chosen) y) x, y)) }
+                             , handler = \(_, y) (x, _) ->
+                             let newText = L.view (S.sRadio.R.chosen) y
+                             in ((), ((L.set T.tText newText
+                                       . L.set T.tPosition ((fromIntegral . DT.length) newText)) x, y)) }
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
