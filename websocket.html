@@ -34,18 +34,16 @@ function mouseout(theid)
 
   if ("WebSocket" in window)
   {
-     // Let us open a web socket
      var ws = new WebSocket("ws://localhost:9998/echo");
      ws.onmessage = function (evt)
-     { 
+     {
          parsed = eval(evt.data);
          document.getElementById("foo").innerHTML = parsed.html;
          eval(parsed.js);
      };
      ws.onclose = function()
-     { 
-        // websocket is closed.
-        alert("Connection is closed..."); 
+     {
+        alert("Connection is closed...");
      };
   }
   else
