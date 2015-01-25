@@ -62,10 +62,9 @@ radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
        -> Widget ev' (Radio x o)
 radioW cx co = (fmap.fmap) (concat . NEL.toList) (radioW' cx co)
 
-radioW' :: ComponentD d e1 ev' x (RadioX x o) xa
-        -> ComponentD d e2 ev' o (RadioO x o) xa
-        -> Radio x o
-        -> D.DocF (ev', xa) (NEL.NonEmpty d)
+radioW' :: ComponentD d e1 ev' x (RadioX x o) (Radio x o)
+        -> ComponentD d e2 ev' o (RadioO x o) (Radio x o)
+        -> WidgetD (NEL.NonEmpty d) ev' (Radio x o)
 radioW' cx co = R.traverseNEL (A.liftA2 (,))
                 . radioToNEL
                 . fmapRadio fx fo
