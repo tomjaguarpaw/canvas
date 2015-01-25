@@ -35,10 +35,10 @@ handlerRadioO (ev, n) b =
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
-              (radioW'' Component { widget2  = selectedC
-                                  , handler2 = handler2OfHandler handlerRadioX }
-                        Component { widget2  = unselectedC
-                                  , handler2 = handler2OfHandler handlerRadioO })
+              (radioW Component { widget2  = selectedC
+                                , handler2 = handler2OfHandler handlerRadioX }
+                      Component { widget2  = unselectedC
+                                , handler2 = handler2OfHandler handlerRadioO })
 
 elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
@@ -82,15 +82,12 @@ handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContex
                           in Response { responseWidget = fromWidget o xa
                                       , responseEvent  = ev' }
 
-radioW'' :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
-         -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
-         -> Widget (Radio d1 d2) ev' (Radio x o)
-radioW'' cx co = R.traverseRadio (A.liftA2 (,))
-                 . fmapRadio fx fo
-                 . duplicateRadio
-
-
-
+radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
+       -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
+       -> Widget (Radio d1 d2) ev' (Radio x o)
+radioW cx co = R.traverseRadio (A.liftA2 (,))
+               . fmapRadio fx fo
+               . duplicateRadio
   where outputX radioX = Outputs { fromComponent = \x -> R.stampX (R.setFocusedX x radioX)
                                  , fromContext   = R.stampX
                                  , fromWidget    = id }
