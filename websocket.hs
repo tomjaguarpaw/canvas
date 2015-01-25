@@ -23,18 +23,18 @@ import qualified Control.Applicative as A
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = (D.mapWidgetDoc (concat . NEL.toList . radioToNEL))
-              (radioW Component { widget  = selectedC
-                                , handler = \b -> Response
-                                     { responseEvent = event b
-                                     , responseWhole = newWhole b } }
-                      Component { widget  = unselectedC
-                                , handler = \b -> Response
-                                     { responseEvent = event b
-                                     , responseWhole = case event b of
-                                         MouseClick -> R.choose (selectedOfUnselected (oldComponent b))
-                                                                unselectedOfSelected
-                                                                (oldContext b)
-                                         _          -> newWhole b } })
+  (radioW Component { widget  = selectedC
+                    , handler = \b -> Response
+                        { responseEvent = event b
+                        , responseWhole = newWhole b } }
+          Component { widget  = unselectedC
+                    , handler = \b -> Response
+                        { responseEvent = event b
+                        , responseWhole = case event b of
+                          MouseClick -> R.choose (selectedOfUnselected (oldComponent b))
+                                        unselectedOfSelected
+                                        (oldContext b)
+                          _          -> newWhole b } })
 
 elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
@@ -109,26 +109,28 @@ radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
 radioW cx co = R.traverseRadio (A.liftA2 (,))
                . fmapRadio fx fo
                . duplicateRadio
-  where behaviourX ev radioXOld radioXNew = Behaviours { oldComponent = R.focusedX radioXOld
-                                                       , oldContext   = radioXOld
-                                                       , oldWhole     = R.stampX radioXOld
-                                                       , newComponent = R.focusedX radioXNew
-                                                       , newContext   = radioXNew
-                                                       , newWhole     = R.stampX radioXNew
-                                                       , event        = ev
-                                                       , fromComponent = \x -> R.stampX (R.setFocusedX x radioXOld)
-                                                       , fromContext   = R.stampX
-                                                       , fromWhole     = id }
-        behaviourO ev radioOOld radioONew = Behaviours { oldComponent = R.focusedO radioOOld
-                                                       , oldContext   = radioOOld
-                                                       , oldWhole     = R.stampO radioOOld
-                                                       , newComponent = R.focusedO radioONew
-                                                       , newContext   = radioONew
-                                                       , newWhole     = R.stampO radioONew
-                                                       , event        = ev
-                                                       , fromComponent = \o -> R.stampO (R.setFocusedO o radioOOld)
-                                                       , fromContext   = R.stampO
-                                                       , fromWhole     = id }
+  where behaviourX ev radioXOld radioXNew =
+          Behaviours { oldComponent = R.focusedX radioXOld
+                     , oldContext   = radioXOld
+                     , oldWhole     = R.stampX radioXOld
+                     , newComponent = R.focusedX radioXNew
+                     , newContext   = radioXNew
+                     , newWhole     = R.stampX radioXNew
+                     , event        = ev
+                     , fromComponent = \x -> R.stampX (R.setFocusedX x radioXOld)
+                     , fromContext   = R.stampX
+                     , fromWhole     = id }
+        behaviourO ev radioOOld radioONew =
+          Behaviours { oldComponent = R.focusedO radioOOld
+                     , oldContext   = radioOOld
+                     , oldWhole     = R.stampO radioOOld
+                     , newComponent = R.focusedO radioONew
+                     , newContext   = radioONew
+                     , newWhole     = R.stampO radioONew
+                     , event        = ev
+                     , fromComponent = \o -> R.stampO (R.setFocusedO o radioOOld)
+                     , fromContext   = R.stampO
+                     , fromWhole     = id }
 
         fx radioXOld = D.fmapResponse (\(ev, xNew) ->
               let radioXNew = R.setFocusedX xNew radioXOld
@@ -144,44 +146,44 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
-vert w w' = D.mapWidgetDoc (uncurry (++)) $
-            vertW' Component { widget = w
-                             , handler = \b -> Response { responseEvent = Left (event b)
-                                                        , responseWhole = newWhole b } }
-                   Component { widget = w'
-                             , handler = \b -> Response { responseEvent = Right (event b)
-                                                        , responseWhole = newWhole b } }
-
-
+vert w w' = D.mapWidgetDoc (uncurry (++)) $ vertW'
+  Component { widget = w
+            , handler = \b -> Response { responseEvent = Left (event b)
+                                       , responseWhole = newWhole b } }
+  Component { widget = w'
+            , handler = \b -> Response { responseEvent = Right (event b)
+                                       , responseWhole = newWhole b } }
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
-resetter = D.mapWidgetDoc (uncurry (++)) $
-           vertW' Component { widget  = elementRadio
-                            , handler = \b -> Response { responseEvent = ()
-                                                       , responseWhole = newWhole b } }
-                  Component { widget  = B.buttonC
-                            , handler = \b -> Response { responseEvent = ()
-                                                       , responseWhole =
-                                                            L.over L._1 chooseFirst' (newWhole b) } }
+resetter = D.mapWidgetDoc (uncurry (++)) $ vertW'
+  Component { widget  = elementRadio
+            , handler = \b -> Response { responseEvent = ()
+                                       , responseWhole = newWhole b } }
+  Component { widget  = B.buttonC
+            , handler = \b -> Response { responseEvent = ()
+                                       , responseWhole =
+                                      L.over L._1 chooseFirst' (newWhole b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect = D.mapWidgetDoc (uncurry (++)) $
-             vertW' Component { widget  = T.textEntryC
-                              , handler = \b -> Response { responseEvent = ()
-                                                         , responseWhole =
-                                                              let T.Input i _ = event b
-                                                              in L.set (L._2.S.sRadio.R.chosen) i (newWhole b) } }
-                   Component { widget  = S.selectC
-                             , handler = \b -> Response { responseEvent = ()
-                                                        , responseWhole =
-                                                             let newW = newWhole b
-                                                                 newText = L.view (L._2.S.sRadio.R.chosen) newW
-                                                             in (L.set (L._1.T.tText) newText
-                                                                 . L.set (L._1.T.tPosition)
-                                                                 ((fromIntegral . DT.length) newText))
-                                                                newW } }
+textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
+  Component { widget  = T.textEntryC
+            , handler = \b ->
+                Response { responseEvent = ()
+                         , responseWhole =
+                              let T.Input i _ = event b
+                              in L.set (L._2.S.sRadio.R.chosen) i (newWhole b) } }
+  Component { widget  = S.selectC
+            , handler = \b ->
+                Response { responseEvent = ()
+                         , responseWhole =
+                              let newW = newWhole b
+                                  newText = L.view (L._2.S.sRadio.R.chosen) newW
+                              in (L.set (L._1.T.tText) newText
+                                  . L.set (L._1.T.tPosition)
+                                  ((fromIntegral . DT.length) newText))
+                                 newW } }
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
