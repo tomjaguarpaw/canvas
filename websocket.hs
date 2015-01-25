@@ -106,11 +106,11 @@ textSelect = vertW Component { widget  = T.textEntryC
                                        . L.set T.tPosition ((fromIntegral . DT.length) newText)) x, y)) }
 
 textSelect' :: WidgetD [D.Element] () (T.TextEntry, S.Select)
-textSelect' o = (++) <$> D.fmapResponse (\(ev, newte) -> ((), (newte, textSelected newte (old se))))
+textSelect' o = (++) <$> D.fmapResponse (\(_, newte) -> ((), (newte, textSelected newte (old se))))
                                         (T.textEntryC (old te))
 
 
-                     <*> D.fmapResponse (\(ev, newse) -> ((),
+                     <*> D.fmapResponse (\(_, newse) -> ((),
                            let newText = L.view (S.sRadio.R.chosen) newse
                            in (textUpdated newText (old te), newse)))
                                         (S.selectC (old se))
