@@ -65,8 +65,6 @@ data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
                                , fromContext   :: xc -> xa
                                , fromWidget    :: xa -> xa }
 
-type Component ev ev' x xz xa = ComponentD [D.GUICircle] ev ev' x xz xa
-
 data ComponentD d ev ev' x xz xa = Component { widget  :: WidgetD d ev x
                                              , handler :: Handler  ev ev' xz x xa }
 
@@ -85,11 +83,6 @@ handler2OfHandler :: Handler t ev xc x xa1
 handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContext b)
                           in Response { responseWidget = fromWidget o xa
                                       , responseEvent  = ev' }
-
-component2OfComponentD :: ComponentD d ev ev' x xc xa -> Component2 d ev ev' xa xc x
-component2OfComponentD cd = Component2 { widget2  = widget cd
-                                       , handler2 = handler2OfHandler (handler cd)
-                                       }
 
 radioW'' :: Component2 d1 e1 ev' (Radio x o) (RadioX x o) x
          -> Component2 d2 e2 ev' (Radio x o) (RadioO x o) o
@@ -136,17 +129,6 @@ radioW'' cx co = R.traverseRadio (A.liftA2 (,))
 
 componentCanvas :: ComponentD d ev ev' x xz xa -> (xz -> x) -> xz -> D.Doc d (ev', xa)
 componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg (x xz))
-
-radioW :: Component e1 ev' x (RadioX x o) (Radio x o)
-       -> Component e2 ev' o (RadioO x o) (Radio x o)
-       -> Widget ev' (Radio x o)
-radioW cx co = (fmap.fmap) (concat . NEL.toList) (radioW' cx co)
-
-radioW' :: ComponentD d e1 ev' x (RadioX x o) (Radio x o)
-        -> ComponentD d e2 ev' o (RadioO x o) (Radio x o)
-        -> WidgetD (NEL.NonEmpty d) ev' (Radio x o)
-radioW' cx co = fmap radioToNEL
-                . radioW'' (component2OfComponentD cx) (component2OfComponentD co)
 
 vert :: WidgetD [D.Element] ev x
      -> WidgetD [D.Element] ev' x'
