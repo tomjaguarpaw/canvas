@@ -23,12 +23,12 @@ import qualified Control.Applicative as A
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
-              (radioW Component { widget2  = selectedC
-                                , handler2 = \b _ -> Response
+              (radioW Component { widget  = selectedC
+                                , handler = \b _ -> Response
                                      { responseEvent  = event b
                                      , responseWidget = newWidget b } }
-                      Component { widget2  = unselectedC
-                                , handler2 = \b _ -> Response
+                      Component { widget  = unselectedC
+                                , handler = \b _ -> Response
                                      { responseEvent  = event b
                                      , responseWidget = case event b of
                                          MouseClick -> R.choose (selectedOfUnselected (oldComponent b))
@@ -60,10 +60,10 @@ data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
 data Package ev xa xc x = Package { behaviours :: Behaviours ev xa xc x
                                   , outputs    :: Outputs xa xc x }
 
-data Component d ev ev' xa xc x = Component { widget2  :: Widget d ev x
-                                            , handler2 :: Behaviours ev xa xc x
-                                                       -> Outputs xa xc x
-                                                       -> Response ev' xa }
+data Component d ev ev' xa xc x = Component { widget  :: Widget d ev x
+                                            , handler :: Behaviours ev xa xc x
+                                                      -> Outputs xa xc x
+                                                      -> Response ev' xa }
 
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWidget r)
@@ -97,15 +97,15 @@ vertW' cx cy = supertraverse fx fy
 
         fx told = D.fmapResponse (\(ev, xNew) ->
           let tnew = L.set L._1 xNew told
-          in tupleOfResponse (handler2 cx (behaviourX ev told tnew)
+          in tupleOfResponse (handler cx (behaviourX ev told tnew)
                                        (outputX tnew)))
-                  (widget2 cx (fst told))
+                  (widget cx (fst told))
 
         fy told = D.fmapResponse (\(ev, yNew) ->
           let tnew = L.set L._2 yNew told
-          in tupleOfResponse (handler2 cy (behaviourY ev told tnew)
+          in tupleOfResponse (handler cy (behaviourY ev told tnew)
                                        (outputY tnew)))
-                  (widget2 cy (snd told))
+                  (widget cy (snd told))
 
         supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
 
@@ -139,37 +139,37 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
 
         fx radioXOld = D.fmapResponse (\(ev, xNew) ->
               let radioXNew = R.setFocusedX xNew radioXOld
-              in tupleOfResponse (handler2 cx (behaviourX ev radioXOld radioXNew)
+              in tupleOfResponse (handler cx (behaviourX ev radioXOld radioXNew)
                              (outputX radioXNew)))
-                                      (widget2 cx (R.focusedX radioXOld))
+                                      (widget cx (R.focusedX radioXOld))
 
         fo radioOOld = D.fmapResponse (\(ev, oNew) ->
               let radioONew = R.setFocusedO oNew radioOOld
-              in tupleOfResponse (handler2 co (behaviourO ev radioOOld radioONew)
+              in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)
                              (outputO radioONew)))
-                                      (widget2 co (R.focusedO radioOOld))
+                                      (widget co (R.focusedO radioOOld))
 
 
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
 vert w w' = (fmap.fmap) (uncurry (++)) $
-            vertW' Component { widget2 = w
-                             , handler2 = \b _ -> Response { responseEvent  = Left (event b)
+            vertW' Component { widget = w
+                             , handler = \b _ -> Response { responseEvent  = Left (event b)
                                                            , responseWidget = newWidget b } }
-                   Component { widget2 = w'
-                             , handler2 = \b _ -> Response { responseEvent  = Right (event b)
+                   Component { widget = w'
+                             , handler = \b _ -> Response { responseEvent  = Right (event b)
                                                            , responseWidget = newWidget b } }
 
 
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
 resetter = (fmap.fmap) (uncurry (++)) $
-           vertW' Component { widget2  = elementRadio
-                            , handler2 = \b _ -> Response { responseEvent  = ()
+           vertW' Component { widget  = elementRadio
+                            , handler = \b _ -> Response { responseEvent  = ()
                                                           , responseWidget = newWidget b } }
-                  Component { widget2  = B.buttonC
-                            , handler2 = \b _ -> Response { responseEvent = ()
+                  Component { widget  = B.buttonC
+                            , handler = \b _ -> Response { responseEvent = ()
                                                           , responseWidget =
                                                                L.over L._1 chooseFirst' (newWidget b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
@@ -177,13 +177,13 @@ resetter = (fmap.fmap) (uncurry (++)) $
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
 textSelect = (fmap.fmap) (uncurry (++)) $
-             vertW' Component { widget2  = T.textEntryC
-                              , handler2 = \b _ -> Response { responseEvent  = ()
+             vertW' Component { widget  = T.textEntryC
+                              , handler = \b _ -> Response { responseEvent  = ()
                                                             , responseWidget =
                                                                  let T.Input i _ = event b
                                                                  in L.set (L._2.S.sRadio.R.chosen) i (newWidget b) } }
-                   Component { widget2  = S.selectC
-                             , handler2 = \b _ -> Response { responseEvent  = ()
+                   Component { widget  = S.selectC
+                             , handler = \b _ -> Response { responseEvent  = ()
                                                            , responseWidget =
                                                                 let newW = newWidget b
                                                                     newText = L.view (L._2.S.sRadio.R.chosen) newW
