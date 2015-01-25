@@ -195,34 +195,21 @@ vertW cl cr t = fl t `D.vert` fr t
         fr = componentCanvas cr snd
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect = vertW ComponentD { widget  = T.textEntryC
-                             , handler = \(T.Input i _, t) (_, s) ->
-                                             ((), (t, L.set (S.sRadio.R.chosen) i s)) }
-                   ComponentD { widget  = S.selectC
-                             , handler = \(_, y) (x, _) ->
-                             let newText = L.view (S.sRadio.R.chosen) y
-                             in ((), ((L.set T.tText newText
-                                       . L.set T.tPosition ((fromIntegral . DT.length) newText)) x, y)) }
-
-textSelect' :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect' o = (++) <$> D.fmapResponse (\(_, newte) -> ((), (newte, textSelected newte (old se))))
-                                        (T.textEntryC (old te))
-
-
-                     <*> D.fmapResponse (\(_, newse) -> ((),
-                           let newText = L.view (S.sRadio.R.chosen) newse
-                           in (textUpdated newText (old te), newse)))
-                                        (S.selectC (old se))
-  where old = ($ o)
-        te  = fst
-        se  = snd
-
-        textUpdated new = L.set T.tText new
-                          . L.set T.tPosition ((fromIntegral . DT.length) new)
-
-        textSelected new = L.set (S.sRadio.R.chosen) (L.view T.tText new)
-
-
+textSelect = (fmap.fmap) (uncurry (++)) $
+             vertW' Component { widget2  = T.textEntryC
+                              , handler2 = \b o -> Response { responseEvent  = ()
+                                                            , responseWidget =
+                                                                 let T.Input i _ = event b
+                                                                 in L.set (L._2.S.sRadio.R.chosen) i (newWidget b) } }
+                   Component { widget2  = S.selectC
+                             , handler2 = \b o -> Response { responseEvent  = ()
+                                                           , responseWidget =
+                                                                let newW = newWidget b
+                                                                    newText = L.view (L._2.S.sRadio.R.chosen) newW
+                                                                in (L.set (L._1.T.tText) newText
+                                                                    . L.set (L._1.T.tPosition)
+                                                                    ((fromIntegral . DT.length) newText))
+                                                                   newW } }
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
@@ -231,7 +218,7 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn (resetter `vert` textSelect')
+  loopGUI conn (resetter `vert` textSelect)
                (((initialGui, B.buttonMake "Reset"),
                  (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
 
