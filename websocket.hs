@@ -19,7 +19,6 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedC, unselectedC)
 import qualified Control.Lens       as L
 import qualified Data.Text.Lazy     as DT
-import           Control.Applicative ((<$>), (<*>))
 import qualified Control.Applicative as A
 
 handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
@@ -63,9 +62,6 @@ data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
                                , fromContext   :: xc -> xa
                                , fromWidget    :: xa -> xa }
 
-data ComponentD d ev ev' x xz xa = ComponentD { widget  :: Widget d ev x
-                                              , handler :: Handler  ev ev' xz x xa }
-
 data Component d ev ev' xa xc x = Component { widget2  :: Widget d ev x
                                             , handler2 :: Behaviours ev xa xc x
                                                        -> Outputs xa xc x
@@ -86,12 +82,12 @@ vertW' :: Component d1 e1 ev' (x, y) (x, y) x
        -> Component d2 e2 ev' (x, y) (x, y) y
        -> Widget (d1, d2) ev' (x, y)
 vertW' cx cy = supertraverse fx fy
-  where outputX (x, y) = Outputs { fromComponent = \x' -> (x', y)
-                                 , fromContext   = id
-                                 , fromWidget    = id }
-        outputY (x, y) = Outputs { fromComponent = \y' -> (x, y')
-                                 , fromContext   = id
-                                 , fromWidget    = id }
+  where outputX t = Outputs { fromComponent = \x -> L.set L._1 x t
+                            , fromContext   = id
+                            , fromWidget    = id }
+        outputY t = Outputs { fromComponent = \y -> L.set L._2 y t
+                            , fromContext   = id
+                            , fromWidget    = id }
         behaviourX ev told tnew = Behaviours {
             oldComponent = fst told
           , oldContext   = told
@@ -164,9 +160,6 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
                                       (widget2 co (R.focusedO radioOOld))
 
 
-componentCanvas :: ComponentD d ev ev' x xz xa -> (xz -> x) -> xz -> D.Doc d (ev', xa)
-componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg (x xz))
-
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
@@ -183,31 +176,24 @@ vert w w' = (fmap.fmap) (uncurry (++)) $
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
 resetter = (fmap.fmap) (uncurry (++)) $
            vertW' Component { widget2  = elementRadio
-                            , handler2 = \b o -> Response { responseEvent  = ()
+                            , handler2 = \b _ -> Response { responseEvent  = ()
                                                           , responseWidget = newWidget b } }
                   Component { widget2  = B.buttonC
-                            , handler2 = \b o -> Response { responseEvent = ()
+                            , handler2 = \b _ -> Response { responseEvent = ()
                                                           , responseWidget =
                                                                L.over L._1 chooseFirst' (newWidget b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
 
-vertW :: ComponentD [D.Element] e1 ev' x (x, y) (x, y)
-      -> ComponentD [D.Element] e2 ev' y (x, y) (x, y)
-      -> Widget [D.Element] ev' (x, y)
-vertW cl cr t = fl t `D.vert` fr t
-  where fl = componentCanvas cl fst
-        fr = componentCanvas cr snd
-
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
 textSelect = (fmap.fmap) (uncurry (++)) $
              vertW' Component { widget2  = T.textEntryC
-                              , handler2 = \b o -> Response { responseEvent  = ()
+                              , handler2 = \b _ -> Response { responseEvent  = ()
                                                             , responseWidget =
                                                                  let T.Input i _ = event b
                                                                  in L.set (L._2.S.sRadio.R.chosen) i (newWidget b) } }
                    Component { widget2  = S.selectC
-                             , handler2 = \b o -> Response { responseEvent  = ()
+                             , handler2 = \b _ -> Response { responseEvent  = ()
                                                            , responseWidget =
                                                                 let newW = newWidget b
                                                                     newText = L.view (L._2.S.sRadio.R.chosen) newW
