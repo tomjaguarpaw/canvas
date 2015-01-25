@@ -176,10 +176,14 @@ vert w w' = vertW ComponentD { widget  = w
                             , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
-resetter = vertW ComponentD { widget  = elementRadio
-                           , handler = \(_, x) (_, y) -> ((), (x, y)) }
-                 ComponentD { widget  = B.buttonC
-                           , handler = \(_, y) (x, _) -> ((), (chooseFirst' x, y)) }
+resetter = (fmap.fmap) (uncurry (++)) $
+           vertW' Component { widget2  = elementRadio
+                            , handler2 = \b o -> Response { responseEvent  = ()
+                                                          , responseWidget = newWidget b } }
+                  Component { widget2  = B.buttonC
+                            , handler2 = \b o -> Response { responseEvent = ()
+                                                          , responseWidget =
+                                                               L.over L._1 chooseFirst' (newWidget b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
 
