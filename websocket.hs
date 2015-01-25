@@ -24,11 +24,11 @@ import qualified Control.Applicative as A
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
               (radioW Component { widget  = selectedC
-                                , handler = \b _ -> Response
+                                , handler = \b -> Response
                                      { responseEvent  = event b
                                      , responseWidget = newWidget b } }
                       Component { widget  = unselectedC
-                                , handler = \b _ -> Response
+                                , handler = \b -> Response
                                      { responseEvent  = event b
                                      , responseWidget = case event b of
                                          MouseClick -> R.choose (selectedOfUnselected (oldComponent b))
@@ -48,21 +48,16 @@ data Behaviours ev xa xc x = Behaviours { oldComponent :: x
                                         , newComponent :: x
                                         , newContext   :: xc
                                         , newWidget    :: xa
-                                        , event        :: ev }
+                                        , event        :: ev
+                                        , fromComponent :: x  -> xa
+                                        , fromContext   :: xc -> xa
+                                        , fromWidget    :: xa -> xa }
 
 data Response ev xa = Response { responseWidget :: xa
                                , responseEvent  :: ev }
 
-data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
-                               , fromContext   :: xc -> xa
-                               , fromWidget    :: xa -> xa }
-
-data Package ev xa xc x = Package { behaviours :: Behaviours ev xa xc x
-                                  , outputs    :: Outputs xa xc x }
-
 data Component d ev ev' xa xc x = Component { widget  :: Widget d ev x
                                             , handler :: Behaviours ev xa xc x
-                                                      -> Outputs xa xc x
                                                       -> Response ev' xa }
 
 tupleOfResponse :: Response ev xa -> (ev, xa)
@@ -72,20 +67,17 @@ vertW' :: Component d1 e1 ev' (x, y) (x, y) x
        -> Component d2 e2 ev' (x, y) (x, y) y
        -> Widget (d1, d2) ev' (x, y)
 vertW' cx cy = supertraverse fx fy
-  where outputX t = Outputs { fromComponent = \x -> L.set L._1 x t
-                            , fromContext   = id
-                            , fromWidget    = id }
-        outputY t = Outputs { fromComponent = \y -> L.set L._2 y t
-                            , fromContext   = id
-                            , fromWidget    = id }
-        behaviourX ev told tnew = Behaviours {
+  where behaviourX ev told tnew = Behaviours {
             oldComponent = fst told
           , oldContext   = told
           , oldWidget    = told
           , newComponent = fst tnew
           , newContext   = tnew
           , newWidget    = tnew
-          , event        = ev }
+          , event        = ev
+          , fromComponent = \x -> L.set L._1 x told
+          , fromContext   = id
+          , fromWidget    = id }
         behaviourY ev told tnew = Behaviours {
             oldComponent = snd told
           , oldContext   = told
@@ -93,18 +85,19 @@ vertW' cx cy = supertraverse fx fy
           , newComponent = snd tnew
           , newContext   = tnew
           , newWidget    = tnew
-          , event        = ev }
+          , event        = ev
+          , fromComponent = \y -> L.set L._2 y told
+          , fromContext   = id
+          , fromWidget    = id }
 
         fx told = D.fmapResponse (\(ev, xNew) ->
           let tnew = L.set L._1 xNew told
-          in tupleOfResponse (handler cx (behaviourX ev told tnew)
-                                       (outputX tnew)))
+          in tupleOfResponse (handler cx (behaviourX ev told tnew)))
                   (widget cx (fst told))
 
         fy told = D.fmapResponse (\(ev, yNew) ->
           let tnew = L.set L._2 yNew told
-          in tupleOfResponse (handler cy (behaviourY ev told tnew)
-                                       (outputY tnew)))
+          in tupleOfResponse (handler cy (behaviourY ev told tnew)))
                   (widget cy (snd told))
 
         supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
@@ -116,37 +109,35 @@ radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
 radioW cx co = R.traverseRadio (A.liftA2 (,))
                . fmapRadio fx fo
                . duplicateRadio
-  where outputX radioX = Outputs { fromComponent = \x -> R.stampX (R.setFocusedX x radioX)
-                                 , fromContext   = R.stampX
-                                 , fromWidget    = id }
-        outputO radioO = Outputs { fromComponent = \o -> R.stampO (R.setFocusedO o radioO)
-                                 , fromContext   = R.stampO
-                                 , fromWidget    = id }
-        behaviourX ev radioXOld radioXNew = Behaviours { oldComponent = R.focusedX radioXOld
+  where behaviourX ev radioXOld radioXNew = Behaviours { oldComponent = R.focusedX radioXOld
                                                        , oldContext   = radioXOld
                                                        , oldWidget    = R.stampX radioXOld
                                                        , newComponent = R.focusedX radioXNew
                                                        , newContext   = radioXNew
                                                        , newWidget    = R.stampX radioXNew
-                                                       , event        = ev }
+                                                       , event        = ev
+                                                       , fromComponent = \x -> R.stampX (R.setFocusedX x radioXOld)
+                                                       , fromContext   = R.stampX
+                                                       , fromWidget    = id }
         behaviourO ev radioOOld radioONew = Behaviours { oldComponent = R.focusedO radioOOld
                                                        , oldContext   = radioOOld
                                                        , oldWidget    = R.stampO radioOOld
                                                        , newComponent = R.focusedO radioONew
                                                        , newContext   = radioONew
                                                        , newWidget    = R.stampO radioONew
-                                                       , event        = ev }
+                                                       , event        = ev
+                                                       , fromComponent = \o -> R.stampO (R.setFocusedO o radioOOld)
+                                                       , fromContext   = R.stampO
+                                                       , fromWidget    = id }
 
         fx radioXOld = D.fmapResponse (\(ev, xNew) ->
               let radioXNew = R.setFocusedX xNew radioXOld
-              in tupleOfResponse (handler cx (behaviourX ev radioXOld radioXNew)
-                             (outputX radioXNew)))
+              in tupleOfResponse (handler cx (behaviourX ev radioXOld radioXNew)))
                                       (widget cx (R.focusedX radioXOld))
 
         fo radioOOld = D.fmapResponse (\(ev, oNew) ->
               let radioONew = R.setFocusedO oNew radioOOld
-              in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)
-                             (outputO radioONew)))
+              in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)))
                                       (widget co (R.focusedO radioOOld))
 
 
@@ -155,42 +146,42 @@ vert :: Widget [D.Element] ev x
      -> Widget [D.Element] (Either ev ev') (x, x')
 vert w w' = (fmap.fmap) (uncurry (++)) $
             vertW' Component { widget = w
-                             , handler = \b _ -> Response { responseEvent  = Left (event b)
-                                                           , responseWidget = newWidget b } }
+                             , handler = \b -> Response { responseEvent  = Left (event b)
+                                                        , responseWidget = newWidget b } }
                    Component { widget = w'
-                             , handler = \b _ -> Response { responseEvent  = Right (event b)
-                                                           , responseWidget = newWidget b } }
+                             , handler = \b -> Response { responseEvent  = Right (event b)
+                                                        , responseWidget = newWidget b } }
 
 
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
 resetter = (fmap.fmap) (uncurry (++)) $
            vertW' Component { widget  = elementRadio
-                            , handler = \b _ -> Response { responseEvent  = ()
-                                                          , responseWidget = newWidget b } }
+                            , handler = \b -> Response { responseEvent  = ()
+                                                       , responseWidget = newWidget b } }
                   Component { widget  = B.buttonC
-                            , handler = \b _ -> Response { responseEvent = ()
-                                                          , responseWidget =
-                                                               L.over L._1 chooseFirst' (newWidget b) } }
+                            , handler = \b -> Response { responseEvent = ()
+                                                       , responseWidget =
+                                                            L.over L._1 chooseFirst' (newWidget b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
 textSelect = (fmap.fmap) (uncurry (++)) $
              vertW' Component { widget  = T.textEntryC
-                              , handler = \b _ -> Response { responseEvent  = ()
-                                                            , responseWidget =
-                                                                 let T.Input i _ = event b
-                                                                 in L.set (L._2.S.sRadio.R.chosen) i (newWidget b) } }
+                              , handler = \b -> Response { responseEvent  = ()
+                                                         , responseWidget =
+                                                              let T.Input i _ = event b
+                                                              in L.set (L._2.S.sRadio.R.chosen) i (newWidget b) } }
                    Component { widget  = S.selectC
-                             , handler = \b _ -> Response { responseEvent  = ()
-                                                           , responseWidget =
-                                                                let newW = newWidget b
-                                                                    newText = L.view (L._2.S.sRadio.R.chosen) newW
-                                                                in (L.set (L._1.T.tText) newText
-                                                                    . L.set (L._1.T.tPosition)
-                                                                    ((fromIntegral . DT.length) newText))
-                                                                   newW } }
+                             , handler = \b -> Response { responseEvent  = ()
+                                                        , responseWidget =
+                                                             let newW = newWidget b
+                                                                 newText = L.view (L._2.S.sRadio.R.chosen) newW
+                                                             in (L.set (L._1.T.tText) newText
+                                                                 . L.set (L._1.T.tPosition)
+                                                                 ((fromIntegral . DT.length) newText))
+                                                                newW } }
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
