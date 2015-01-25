@@ -34,7 +34,7 @@ handlerRadioO (ev, n) b =
       _          -> R.stampFocusedO n b)
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
-canvasRadio = ((fmap.fmap) (concat . NEL.toList) . (fmap.fmap) radioToNEL)
+canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
               (radioW'' Component2 { widget2  = selectedC
                                    , handler2 = handler2OfHandler handlerRadioX }
                         Component2 { widget2  = unselectedC
