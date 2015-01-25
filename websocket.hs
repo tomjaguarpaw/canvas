@@ -35,10 +35,10 @@ handlerRadioO (ev, n) b =
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
-              (radioW'' Component2 { widget2  = selectedC
-                                   , handler2 = handler2OfHandler handlerRadioX }
-                        Component2 { widget2  = unselectedC
-                                   , handler2 = handler2OfHandler handlerRadioO })
+              (radioW'' Component { widget2  = selectedC
+                                  , handler2 = handler2OfHandler handlerRadioX }
+                        Component { widget2  = unselectedC
+                                  , handler2 = handler2OfHandler handlerRadioO })
 
 elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
@@ -63,13 +63,13 @@ data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
                                , fromContext   :: xc -> xa
                                , fromWidget    :: xa -> xa }
 
-data ComponentD d ev ev' x xz xa = Component { widget  :: Widget d ev x
-                                             , handler :: Handler  ev ev' xz x xa }
+data ComponentD d ev ev' x xz xa = ComponentD { widget  :: Widget d ev x
+                                              , handler :: Handler  ev ev' xz x xa }
 
-data Component2 d ev ev' xa xc x = Component2 { widget2  :: Widget d ev x
-                                              , handler2 :: Behaviours ev xa xc x
-                                                         -> Outputs xa xc x
-                                                         -> Response ev' xa }
+data Component d ev ev' xa xc x = Component { widget2  :: Widget d ev x
+                                            , handler2 :: Behaviours ev xa xc x
+                                                       -> Outputs xa xc x
+                                                       -> Response ev' xa }
 
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWidget r)
@@ -82,8 +82,8 @@ handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContex
                           in Response { responseWidget = fromWidget o xa
                                       , responseEvent  = ev' }
 
-radioW'' :: Component2 d1 e1 ev' (Radio x o) (RadioX x o) x
-         -> Component2 d2 e2 ev' (Radio x o) (RadioO x o) o
+radioW'' :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
+         -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
          -> Widget (Radio d1 d2) ev' (Radio x o)
 radioW'' cx co = R.traverseRadio (A.liftA2 (,))
                  . fmapRadio fx fo
@@ -131,15 +131,15 @@ componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg 
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
-vert w w' = vertW Component { widget  = w
+vert w w' = vertW ComponentD { widget  = w
                             , handler = \(ev, x) (_, y) -> (Left ev, (x, y)) }
-                  Component { widget  = w'
+                  ComponentD { widget  = w'
                             , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
-resetter = vertW Component { widget  = elementRadio
+resetter = vertW ComponentD { widget  = elementRadio
                            , handler = \(_, x) (_, y) -> ((), (x, y)) }
-                 Component { widget  = B.buttonC
+                 ComponentD { widget  = B.buttonC
                            , handler = \(_, y) (x, _) -> ((), (chooseFirst' x, y)) }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
@@ -152,10 +152,10 @@ vertW cl cr t = fl t `D.vert` fr t
         fr = componentCanvas cr snd
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect = vertW Component { widget  = T.textEntryC
+textSelect = vertW ComponentD { widget  = T.textEntryC
                              , handler = \(T.Input i _, t) (_, s) ->
                                              ((), (t, L.set (S.sRadio.R.chosen) i s)) }
-                   Component { widget  = S.selectC
+                   ComponentD { widget  = S.selectC
                              , handler = \(_, y) (x, _) ->
                              let newText = L.view (S.sRadio.R.chosen) y
                              in ((), ((L.set T.tText newText
