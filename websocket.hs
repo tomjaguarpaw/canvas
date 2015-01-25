@@ -49,10 +49,76 @@ type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
 type WidgetD' d ev x x' = x -> D.Doc d (ev, x')
 type WidgetD  d ev x = WidgetD' d ev x x
 
+data Behaviours ev xa xc x = Behaviours { oldComponent :: x
+                                        , oldContext   :: xc
+                                        , oldWidget    :: xa
+                                        , newComponent :: x
+                                        , newContext   :: xc
+                                        , newWidget    :: xa
+                                        , event        :: ev }
+
+data Response ev xa = Response { responseWidget :: xa
+                               , responseEvent  :: ev }
+
+data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
+                               , fromContext   :: xc -> xa
+                               , fromWidget    :: xa -> xa }
+
 type Component ev ev' x xz xa = ComponentD [D.GUICircle] ev ev' x xz xa
 
 data ComponentD d ev ev' x xz xa = Component { widget  :: WidgetD d ev x
                                              , handler :: Handler  ev ev' xz x xa }
+
+data Component2 d ev ev' xa xc x = Component2 { widget2  :: WidgetD d ev x
+                                              , handler2 :: Behaviours ev xa xc x
+                                                         -> Outputs xa xc x
+                                                         -> Response ev' xa }
+
+tupleOfResponse :: Response ev xa -> (ev, xa)
+tupleOfResponse r = (responseEvent r, responseWidget r)
+
+radioW'' :: Component2 d1 e1 ev' (Radio x o) (RadioX x o) x
+         -> Component2 d2 e2 ev' (Radio x o) (RadioO x o) o
+         -> WidgetD (Radio d1 d2) ev' (Radio x o)
+radioW'' cx co = R.traverseRadio (A.liftA2 (,))
+                 . fmapRadio fx fo
+                 . duplicateRadio
+
+
+
+  where outputX radioX = Outputs { fromComponent = \x -> R.stampX (R.setFocusedX x radioX)
+                                 , fromContext   = R.stampX
+                                 , fromWidget    = id }
+        outputO radioO = Outputs { fromComponent = \o -> R.stampO (R.setFocusedO o radioO)
+                                 , fromContext   = R.stampO
+                                 , fromWidget    = id }
+        behaviourX ev radioXOld radioXNew = Behaviours { oldComponent = R.focusedX radioXOld
+                                                       , oldContext   = radioXOld
+                                                       , oldWidget    = R.stampX radioXOld
+                                                       , newComponent = R.focusedX radioXNew
+                                                       , newContext   = radioXNew
+                                                       , newWidget    = R.stampX radioXNew
+                                                       , event        = ev }
+        behaviourO ev radioOOld radioONew = Behaviours { oldComponent = R.focusedO radioOOld
+                                                       , oldContext   = radioOOld
+                                                       , oldWidget    = R.stampO radioOOld
+                                                       , newComponent = R.focusedO radioONew
+                                                       , newContext   = radioONew
+                                                       , newWidget    = R.stampO radioONew
+                                                       , event        = ev }
+
+        fx radioXOld = D.fmapResponse (\(ev, xNew) ->
+              let radioXNew = R.setFocusedX xNew radioXOld
+              in tupleOfResponse (handler2 cx (behaviourX ev radioXOld radioXNew)
+                             (outputX radioXNew)))
+                                      (widget2 cx (R.focusedX radioXOld))
+
+        fo radioOOld = D.fmapResponse (\(ev, oNew) ->
+              let radioONew = R.setFocusedO oNew radioOOld
+              in tupleOfResponse (handler2 co (behaviourO ev radioOOld radioONew)
+                             (outputO radioONew)))
+                                      (widget2 co (R.focusedO radioOOld))
+
 
 componentCanvas :: ComponentD d ev ev' x xz xa -> (xz -> x) -> xz -> D.Doc d (ev', xa)
 componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg (x xz))
