@@ -21,28 +21,23 @@ import qualified Control.Lens       as L
 import qualified Data.Text.Lazy     as DT
 import qualified Control.Applicative as A
 
-handlerRadioX :: (ev, x) -> RadioX x o -> (ev, Radio x o)
-handlerRadioX (ev, x') rx = (ev, R.stampFocusedX x' rx)
-
-handlerRadioO :: (CircleEvent, Unselected)
-              -> RadioO Selected Unselected
-              -> (CircleEvent, Radio Selected Unselected)
-handlerRadioO (ev, n) b =
-  (ev, case ev of
-      MouseClick -> R.choose (selectedOfUnselected n) unselectedOfSelected b
-      _          -> R.stampFocusedO n b)
-
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
               (radioW Component { widget2  = selectedC
-                                , handler2 = handler2OfHandler handlerRadioX }
+                                , handler2 = \b _ -> Response
+                                     { responseEvent  = event b
+                                     , responseWidget = newWidget b } }
                       Component { widget2  = unselectedC
-                                , handler2 = handler2OfHandler handlerRadioO })
+                                , handler2 = \b _ -> Response
+                                     { responseEvent  = event b
+                                     , responseWidget = case event b of
+                                         MouseClick -> R.choose (selectedOfUnselected (oldComponent b))
+                                                                unselectedOfSelected
+                                                                (oldContext b)
+                                         _          -> newWidget b } })
 
 elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
-
-type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
 
 type Widget' d ev x x' = x -> D.Doc d (ev, x')
 type Widget  d ev x = Widget' d ev x x
@@ -69,14 +64,6 @@ data Component d ev ev' xa xc x = Component { widget2  :: Widget d ev x
 
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWidget r)
-
-handler2OfHandler :: Handler t ev xc x xa1
-                  -> Behaviours t xa xc x
-                  -> Outputs xa1 xc1 x1
-                  -> Response ev xa1
-handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContext b)
-                          in Response { responseWidget = fromWidget o xa
-                                      , responseEvent  = ev' }
 
 vertW' :: Component d1 e1 ev' (x, y) (x, y) x
        -> Component d2 e2 ev' (x, y) (x, y) y
