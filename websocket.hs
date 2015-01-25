@@ -170,10 +170,15 @@ componentCanvas cg x xz = D.fmapResponse (\ex' -> handler cg ex' xz) (widget cg 
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
-vert w w' = vertW ComponentD { widget  = w
-                            , handler = \(ev, x) (_, y) -> (Left ev, (x, y)) }
-                  ComponentD { widget  = w'
-                            , handler = \(ev, y) (x, _) -> (Right ev, (x, y)) }
+vert w w' = (fmap.fmap) (uncurry (++)) $
+            vertW' Component { widget2 = w
+                             , handler2 = \b _ -> Response { responseEvent  = Left (event b)
+                                                           , responseWidget = newWidget b } }
+                   Component { widget2 = w'
+                             , handler2 = \b _ -> Response { responseEvent  = Right (event b)
+                                                           , responseWidget = newWidget b } }
+
+
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
 resetter = (fmap.fmap) (uncurry (++)) $
