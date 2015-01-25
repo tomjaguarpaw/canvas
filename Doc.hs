@@ -43,12 +43,18 @@ unique = do
   (return . T.pack . show) i
 
 instance Functor (DocF a) where
-  fmap f (Doc t) = Doc (L.over (L.mapped.L._1) f t)
+  fmap = mapDoc
 
 instance Applicative (DocF a) where
   pure x = Doc (pure (x, const Nothing))
   Doc tf <*> Doc tt = Doc (liftA2 (<**>) tf tt)
     where (df, ff) <**> (dx, fx) = (df dx, liftA2 firstJust ff fx)
+
+mapDoc :: (a -> b) -> DocF e a -> DocF e b
+mapDoc f (Doc t) = Doc (L.over (L.mapped.L._1) f t)
+
+mapWidgetDoc :: (a -> b) -> (r -> DocF e a) -> (r -> DocF e b)
+mapWidgetDoc = fmap . mapDoc
 
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
 fmapResponse f (Doc t) = Doc (L.over (L.mapped.L._2.L.mapped.L.mapped) f t)

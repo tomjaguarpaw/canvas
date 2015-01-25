@@ -22,7 +22,7 @@ import qualified Data.Text.Lazy     as DT
 import qualified Control.Applicative as A
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
-canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
+canvasRadio = (D.mapWidgetDoc (concat . NEL.toList . radioToNEL))
               (radioW Component { widget  = selectedC
                                 , handler = \b -> Response
                                      { responseEvent = event b
@@ -144,7 +144,7 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
-vert w w' = (fmap.fmap) (uncurry (++)) $
+vert w w' = D.mapWidgetDoc (uncurry (++)) $
             vertW' Component { widget = w
                              , handler = \b -> Response { responseEvent = Left (event b)
                                                         , responseWhole = newWhole b } }
@@ -155,7 +155,7 @@ vert w w' = (fmap.fmap) (uncurry (++)) $
 
 
 resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
-resetter = (fmap.fmap) (uncurry (++)) $
+resetter = D.mapWidgetDoc (uncurry (++)) $
            vertW' Component { widget  = elementRadio
                             , handler = \b -> Response { responseEvent = ()
                                                        , responseWhole = newWhole b } }
@@ -167,7 +167,7 @@ resetter = (fmap.fmap) (uncurry (++)) $
 
 
 textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect = (fmap.fmap) (uncurry (++)) $
+textSelect = D.mapWidgetDoc (uncurry (++)) $
              vertW' Component { widget  = T.textEntryC
                               , handler = \b -> Response { responseEvent = ()
                                                          , responseWhole =
