@@ -33,7 +33,7 @@ handlerRadioO (ev, n) b =
       MouseClick -> R.choose (selectedOfUnselected n) unselectedOfSelected b
       _          -> R.stampFocusedO n b)
 
-canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
+canvasRadio :: WidgetD [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
               (radioW'' Component2 { widget2  = selectedC
                                    , handler2 = handler2OfHandler handlerRadioX }
@@ -43,8 +43,6 @@ canvasRadio = ((fmap.fmap) (concat . NEL.toList . radioToNEL))
 elementRadio :: WidgetD [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
 
-type Widget' ev x x' = WidgetD' [D.GUICircle] ev x x'
-type Widget  ev x = Widget' ev x x
 type Handler ev ev' xz x' xa = (ev, x') -> xz -> (ev', xa)
 
 type WidgetD' d ev x x' = x -> D.Doc d (ev, x')
