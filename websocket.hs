@@ -34,10 +34,11 @@ handlerRadioO (ev, n) b =
       _          -> R.stampFocusedO n b)
 
 canvasRadio :: Widget CircleEvent (Radio Selected Unselected)
-canvasRadio = radioW Component { widget  = selectedC
-                               , handler = handlerRadioX }
-                     Component { widget  = unselectedC
-                               , handler = handlerRadioO }
+canvasRadio = ((fmap.fmap) (concat . NEL.toList) . (fmap.fmap) radioToNEL)
+              (radioW'' Component2 { widget2  = selectedC
+                                   , handler2 = handler2OfHandler handlerRadioX }
+                        Component2 { widget2  = unselectedC
+                                   , handler2 = handler2OfHandler handlerRadioO })
 
 elementRadio :: WidgetD [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
@@ -77,12 +78,17 @@ data Component2 d ev ev' xa xc x = Component2 { widget2  :: WidgetD d ev x
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWidget r)
 
+handler2OfHandler :: Handler t ev xc x xa1
+                  -> Behaviours t xa xc x
+                  -> Outputs xa1 xc1 x1
+                  -> Response ev xa1
+handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContext b)
+                          in Response { responseWidget = fromWidget o xa
+                                      , responseEvent  = ev' }
+
 component2OfComponentD :: ComponentD d ev ev' x xc xa -> Component2 d ev ev' xa xc x
 component2OfComponentD cd = Component2 { widget2  = widget cd
-                                       , handler2 = \b o ->
-                                       let (ev', xa) = handler cd (event b, newComponent b) (oldContext b)
-                                       in Response { responseWidget = fromWidget o xa
-                                                   , responseEvent  = ev' }
+                                       , handler2 = handler2OfHandler (handler cd)
                                        }
 
 radioW'' :: Component2 d1 e1 ev' (Radio x o) (RadioX x o) x
