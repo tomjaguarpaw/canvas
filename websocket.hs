@@ -5,7 +5,7 @@ import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
 import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      radioToNEL, fmapRadio,
-                                     duplicateRadio, focusedX, focusedO)
+                                     duplicateRadio)
 import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
@@ -77,6 +77,14 @@ data Component2 d ev ev' xa xc x = Component2 { widget2  :: WidgetD d ev x
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWidget r)
 
+component2OfComponentD :: ComponentD d ev ev' x xc xa -> Component2 d ev ev' xa xc x
+component2OfComponentD cd = Component2 { widget2  = widget cd
+                                       , handler2 = \b o ->
+                                       let (ev', xa) = handler cd (event b, newComponent b) (oldContext b)
+                                       in Response { responseWidget = fromWidget o xa
+                                                   , responseEvent  = ev' }
+                                       }
+
 radioW'' :: Component2 d1 e1 ev' (Radio x o) (RadioX x o) x
          -> Component2 d2 e2 ev' (Radio x o) (RadioO x o) o
          -> WidgetD (Radio d1 d2) ev' (Radio x o)
@@ -131,12 +139,8 @@ radioW cx co = (fmap.fmap) (concat . NEL.toList) (radioW' cx co)
 radioW' :: ComponentD d e1 ev' x (RadioX x o) (Radio x o)
         -> ComponentD d e2 ev' o (RadioO x o) (Radio x o)
         -> WidgetD (NEL.NonEmpty d) ev' (Radio x o)
-radioW' cx co = R.traverseNEL (A.liftA2 (,))
-                . radioToNEL
-                . fmapRadio fx fo
-                . duplicateRadio
-  where fx = componentCanvas cx focusedX
-        fo = componentCanvas co focusedO
+radioW' cx co = fmap radioToNEL
+                . radioW'' (component2OfComponentD cx) (component2OfComponentD co)
 
 vert :: WidgetD [D.Element] ev x
      -> WidgetD [D.Element] ev' x'
