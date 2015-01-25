@@ -57,6 +57,9 @@ data Outputs xa xc x = Outputs { fromComponent :: x  -> xa
                                , fromContext   :: xc -> xa
                                , fromWidget    :: xa -> xa }
 
+data Package ev xa xc x = Package { behaviours :: Behaviours ev xa xc x
+                                  , outputs    :: Outputs xa xc x }
+
 data Component d ev ev' xa xc x = Component { widget2  :: Widget d ev x
                                             , handler2 :: Behaviours ev xa xc x
                                                        -> Outputs xa xc x
