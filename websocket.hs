@@ -82,6 +82,48 @@ handler2OfHandler h b o = let (ev', xa) = h (event b, newComponent b) (oldContex
                           in Response { responseWidget = fromWidget o xa
                                       , responseEvent  = ev' }
 
+vertW' :: Component d1 e1 ev' (x, y) (x, y) x
+       -> Component d2 e2 ev' (x, y) (x, y) y
+       -> Widget (d1, d2) ev' (x, y)
+vertW' cx cy = supertraverse fx fy
+  where outputX (x, y) = Outputs { fromComponent = \x' -> (x', y)
+                                 , fromContext   = id
+                                 , fromWidget    = id }
+        outputY (x, y) = Outputs { fromComponent = \y' -> (x, y')
+                                 , fromContext   = id
+                                 , fromWidget    = id }
+        behaviourX ev told tnew = Behaviours {
+            oldComponent = fst told
+          , oldContext   = told
+          , oldWidget    = told
+          , newComponent = fst tnew
+          , newContext   = tnew
+          , newWidget    = tnew
+          , event        = ev }
+        behaviourY ev told tnew = Behaviours {
+            oldComponent = snd told
+          , oldContext   = told
+          , oldWidget    = told
+          , newComponent = snd tnew
+          , newContext   = tnew
+          , newWidget    = tnew
+          , event        = ev }
+
+        fx told = D.fmapResponse (\(ev, xNew) ->
+          let tnew = L.set L._1 xNew told
+          in tupleOfResponse (handler2 cx (behaviourX ev told tnew)
+                                       (outputX tnew)))
+                  (widget2 cx (fst told))
+
+        fy told = D.fmapResponse (\(ev, yNew) ->
+          let tnew = L.set L._2 yNew told
+          in tupleOfResponse (handler2 cy (behaviourY ev told tnew)
+                                       (outputY tnew)))
+                  (widget2 cy (snd told))
+
+        supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
+
+
 radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
        -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
        -> Widget (Radio d1 d2) ev' (Radio x o)
