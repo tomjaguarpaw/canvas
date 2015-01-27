@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE LambdaCase #-}
 
@@ -6,6 +7,8 @@ module Doc2 where
 import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
 import qualified Doc as D
+import qualified TextEntry as T
+import qualified Select as S
 import qualified Circle as C
 import qualified Websocket as W
 import           Doc (DocF)
@@ -13,6 +16,7 @@ import qualified Radio as R
 import           Control.Arrow ((***))
 import qualified Control.Lens as L
 import           Control.Applicative (liftA2)
+import qualified Data.Text.Lazy     as DT
 
 data D e c b d = forall s. D (c -> s) (s -> DocF (e, s) d) (s -> b)
 
@@ -24,6 +28,9 @@ pairD d1 d2 = case d1 of
                       (D.fmapResponse (L.over L._2 (\s1n -> (s1n, s2))) (u1 s1))
                       (D.fmapResponse (L.over L._2 (\s2n -> (s1, s2n))) (u2 s2)))
                     (b1 *** b2)
+
+pairE :: D e c b d -> D e' c' b' d' -> D (Either e e') (c, c') (b, b') (d, d')
+pairE d d' = pairD (mapEvent Left d) (mapEvent Right d')
 
 mapEvent :: (e -> e') -> D e c b d -> D e' c b d
 mapEvent f d1 = case d1 of
@@ -103,6 +110,18 @@ radioC' :: D ()
              [D.Element]
 radioC' = mapDoc (return . D.GUICircles . concat . NEL.toList . R.radioToNEL) radioC
 
+textSelect :: D () (T.TextEntry, S.Select) (T.TextEntry, S.Select) [D.Element]
+textSelect = (mapEvent (const ())
+              . handle (\_ ev t -> case ev of
+                           Left (T.Input i _) ->
+                             Just (L.set (L._2.S.sRadio.R.chosen) i t)
+                           Right _ -> let newText = L.view (L._2.S.sRadio.R.chosen) t
+                                      in Just ((L.set (L._1.T.tText) newText
+                                                . L.set (L._1.T.tPosition)
+                                                ((fromIntegral . DT.length) newText)) t))
+              . mapDoc (uncurry (++)))
+             (pairE (toD T.textEntryC) (toD S.selectC))
+
 runD :: (d -> IO D.Message) -> D e c b d -> c -> IO a
 runD f d cs = case d of D c u _ -> run f u (c cs)
 
@@ -120,12 +139,20 @@ run' f fd s = do
                              Just (_, s') -> s'
 
 
+vert :: D e c b [D.Element]
+     -> D e c' b' [D.Element]
+     -> D e (c, c') (b, b') [D.Element]
+vert d d' = mapDoc (uncurry (++)) (pairD d d')
+
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = R.Chosen C.selectedMake
-                          [ C.unselectedMake, C.unselectedMake, C.unselectedMake ]
+  let initialGui = (R.Chosen C.selectedMake
+                          [ C.unselectedMake, C.unselectedMake, C.unselectedMake ],
+                    (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))
+
+      gui = radioC' `vert` textSelect
 
       handler d = do
         WS.sendTextData conn (D.renderElements' d)
@@ -133,7 +160,7 @@ runServer pc = do
         print msg
         return msg
 
-  runD handler radioC' initialGui
+  runD handler gui initialGui
 
 
 main :: IO ()
