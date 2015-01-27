@@ -43,3 +43,9 @@ radio d1 d2 = case d1 of
     D c2 u2 b2 -> D (R.fmapRadio c1 c2)
                     (plainRadio u1 u2)
                     (R.fmapRadio b1 b2)
+
+attach :: D e c b d -> D (e, a) (c, a) b d
+attach d1 = case d1 of
+  D c1 u1 b1 -> D (L.over L._1 c1)
+                  (\(r, a) -> D.fmapResponse (\(e, rn) -> ((e, a), (rn, a))) (u1 r))
+                  (b1 . fst)
