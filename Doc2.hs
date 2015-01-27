@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Doc2 where
 
@@ -81,13 +82,18 @@ attach d1 = case d1 of
 radioC :: D ()
             (R.Radio C.Selected C.Unselected) (R.Radio C.Selected C.Unselected)
             (R.Radio [D.GUICircle] [D.GUICircle])
-radioC = mapEvent (const ())
-            (flip handle (radio (toD C.selectedC) (toD C.unselectedC))
-             (\_ t _ -> case t of (Right (C.MouseClick, xc)) ->
-                                    Just (R.choose (C.selectedOfUnselected (R.focusedO xc))
-                                                   C.unselectedOfSelected
-                                                   xc)
-                                  _                         -> Nothing))
+radioC = (mapEvent (const ())
+          . handle (\_ t _ -> radioClickHandler t))
+         (radio (toD C.selectedC) (toD C.unselectedC))
+
+radioClickHandler :: Either a (C.CircleEvent, R.RadioO C.Selected C.Unselected)
+                  -> Maybe (R.Radio C.Selected C.Unselected)
+radioClickHandler = \case {
+  Right (C.MouseClick, xc) ->
+     Just (R.choose (C.selectedOfUnselected (R.focusedO xc))
+                    C.unselectedOfSelected xc);
+  _                        -> Nothing }
+
 radioC' :: D ()
              (R.Radio C.Selected C.Unselected) (R.Radio C.Selected C.Unselected)
              [D.Element]
