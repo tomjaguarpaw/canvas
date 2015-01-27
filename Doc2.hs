@@ -3,6 +3,7 @@
 module Doc2 where
 
 import qualified Doc as D
+import qualified Circle as C
 import qualified Websocket as W
 import           Doc (DocF)
 import qualified Radio as R
@@ -70,3 +71,14 @@ attach d1 = case d1 of
   D c1 u1 b1 -> D (L.over L._1 c1)
                   (\(r, a) -> D.fmapResponse (\(e, rn) -> ((e, a), (rn, a))) (u1 r))
                   (b1 . fst)
+
+radioC :: D ()
+            (R.Radio C.Selected C.Unselected) (R.Radio C.Selected C.Unselected)
+            (R.Radio [D.GUICircle] [D.GUICircle])
+radioC = mapEvent (const ())
+            (flip handle (radio (toD C.selectedC) (toD C.unselectedC))
+             (\_ t _ -> case t of (Right (C.MouseClick, xc)) ->
+                                    Just (R.choose (C.selectedOfUnselected (R.focusedO xc))
+                                                   C.unselectedOfSelected
+                                                   xc)
+                                  _                         -> Nothing))
