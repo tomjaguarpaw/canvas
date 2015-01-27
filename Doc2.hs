@@ -16,7 +16,6 @@ import qualified Radio as R
 import           Control.Arrow ((***))
 import qualified Control.Lens as L
 import           Control.Applicative (liftA2)
-import qualified Data.Text.Lazy     as DT
 
 data D e c b d = forall s. D (c -> s) (s -> DocF (e, s) d) (s -> b)
 
@@ -115,10 +114,7 @@ textSelect = (mapEvent (const ())
               . handle (\_ ev t -> case ev of
                            Left (T.Input i _) ->
                              Just (L.set (L._2.S.sRadio.R.chosen) i t)
-                           Right _ -> let newText = L.view (L._2.S.sRadio.R.chosen) t
-                                      in Just ((L.set (L._1.T.tText) newText
-                                                . L.set (L._1.T.tPosition)
-                                                ((fromIntegral . DT.length) newText)) t))
+                           Right _ -> Just (W.handleTextChange t))
               . mapDoc (uncurry (++)))
              (pairE (toD T.textEntryC) (toD S.selectC))
 

@@ -206,13 +206,14 @@ textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = S.selectC
             , handler = \b ->
                 Response { responseEvent = ()
-                         , responseWhole =
-                              let newW = newWhole b
-                                  newText = L.view (L._2.S.sRadio.R.chosen) newW
-                              in (L.set (L._1.T.tText) newText
-                                  . L.set (L._1.T.tPosition)
-                                  ((fromIntegral . DT.length) newText))
-                                 newW } }
+                         , responseWhole = handleTextChange (newWhole b) } }
+
+handleTextChange :: (T.TextEntry, S.Select) -> (T.TextEntry, S.Select)
+handleTextChange t = let newW = t
+                         newText = L.view (L._2.S.sRadio.R.chosen) newW
+                     in (L.set (L._1.T.tText) newText
+                         . L.set (L._1.T.tPosition)
+                         ((fromIntegral . DT.length) newText)) newW
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
