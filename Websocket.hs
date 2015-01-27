@@ -200,13 +200,18 @@ textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = T.textEntryC
             , handler = \b ->
                 Response { responseEvent = ()
-                         , responseWhole =
-                              let T.Input i _ = event b
-                              in L.set (L._2.S.sRadio.R.chosen) i (newWhole b) } }
+                         , responseWhole = handleSelectionChange
+                                                  (event b) (newWhole b)} }
   Component { widget  = S.selectC
             , handler = \b ->
                 Response { responseEvent = ()
                          , responseWhole = handleTextChange (newWhole b) } }
+
+handleSelectionChange :: T.TextEntryEvent
+                      -> (T.TextEntry, S.Select)
+                      -> (T.TextEntry, S.Select)
+handleSelectionChange ev t = let T.Input i _ = ev
+                             in L.set (L._2.S.sRadio.R.chosen) i t
 
 handleTextChange :: (T.TextEntry, S.Select) -> (T.TextEntry, S.Select)
 handleTextChange t = let newW = t

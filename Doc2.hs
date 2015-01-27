@@ -112,8 +112,7 @@ radioC' = mapDoc (return . D.GUICircles . concat . NEL.toList . R.radioToNEL) ra
 textSelect :: D () (T.TextEntry, S.Select) (T.TextEntry, S.Select) [D.Element]
 textSelect = (mapEvent (const ())
               . handle (\_ ev t -> case ev of
-                           Left (T.Input i _) ->
-                             Just (L.set (L._2.S.sRadio.R.chosen) i t)
+                           Left ev' -> Just (W.handleSelectionChange ev' t)
                            Right _ -> Just (W.handleTextChange t))
               . mapDoc (uncurry (++)))
              (pairE (toD T.textEntryC) (toD S.selectC))
