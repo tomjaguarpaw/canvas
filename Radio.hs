@@ -112,6 +112,8 @@ duplicateNEL = ne >>> \case
   Right (a, as) -> NELZ [] a (NEL.toList as)
                    `NEL.cons` (fmap (a `consNELZ`) (duplicateNEL as))
 
+-- Does this have an easier mutually recursive implementation with
+-- extendRadio?
 duplicateRadio' :: Radio' x o -> Radio' (RadioX x o) (RadioO x o)
 duplicateRadio' (Chosen1' x)     = Chosen1' (At [] x [])
 duplicateRadio' (Chosen' x xs)   = Chosen' (At [] x (NEL.toList xs))
@@ -123,6 +125,11 @@ duplicateRadio' (Unchosen' o rs) = Unchosen' (After [] o rs) rost
 
 duplicateRadio :: Radio x o -> Radio (RadioX x o) (RadioO x o)
 duplicateRadio = fromRadio' . duplicateRadio' . toRadio'
+
+extendRadio :: (RadioX x o -> x')
+            -> (RadioO x o -> o')
+            -> Radio x o -> Radio x' o'
+extendRadio fx fo = fmapRadio fx fo . duplicateRadio
 
 traverseNEL :: Functor f =>
                (forall a b. f a -> f b -> f (a, b))

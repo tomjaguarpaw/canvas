@@ -4,8 +4,7 @@
 import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
 import           Radio              (RadioX, RadioO, Radio(Chosen),
-                                     radioToNEL, fmapRadio,
-                                     duplicateRadio)
+                                     radioToNEL, extendRadio)
 import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
@@ -107,8 +106,7 @@ radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
        -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
        -> Widget (Radio d1 d2) ev' (Radio x o)
 radioW cx co = R.traverseRadio (A.liftA2 (,))
-               . fmapRadio fx fo
-               . duplicateRadio
+               . extendRadio fx fo
   where behaviourX ev radioXOld radioXNew =
           Behaviours { oldComponent = R.focusedX radioXOld
                      , oldContext   = radioXOld
