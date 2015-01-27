@@ -165,7 +165,7 @@ renderElements' t = (embracket
                      . encodeObject
                      . HashMap.fromList) [("html", html), ("js", js)]
   where total = map elementHtml t
-        html = (renderHtml . sequence_ . map fst) total
+        html = (renderHtml . mapM_ fst) total
         js = (T.intercalate ";\n" . concatMap snd) total
         embracket x = "(" <> x <> ")"
 

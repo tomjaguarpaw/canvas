@@ -66,7 +66,7 @@ radio :: D ex cx bx dxx
 radio d1 d2 = case d1 of
   D c1 u1 b1 -> case d2 of
     D c2 u2 b2 -> D (R.fmapRadio c1 c2)
-                    ((fmap.D.fmapResponse. (L.over L._1))
+                    ((fmap . D.fmapResponse . L.over L._1)
                             (either (\(e, c) -> Left (e, R.fmapRadioX b1 b2 c))
                                     (\(e, c) -> Right(e, R.fmapRadioO b1 b2 c)))
                             (W.radioC u1 u2))
@@ -127,5 +127,4 @@ runServer pc = do
 
 
 main :: IO ()
-main = do
-  WS.runServer "0.0.0.0" 9998 runServer
+main = WS.runServer "0.0.0.0" 9998 runServer

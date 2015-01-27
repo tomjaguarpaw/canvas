@@ -23,7 +23,7 @@ import qualified Data.Text.Lazy     as DT
 import qualified Control.Applicative as A
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
-canvasRadio = (D.mapWidgetDoc (concat . NEL.toList . radioToNEL))
+canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
   (radioW Component { widget  = selectedC
                     , handler = \b -> Response
                         { responseEvent = event b
