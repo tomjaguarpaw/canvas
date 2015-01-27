@@ -68,10 +68,14 @@ radio d1 d2 = case d1 of
   D c1 u1 b1 -> case d2 of
     D c2 u2 b2 -> D (R.fmapRadio c1 c2)
                     ((fmap . D.fmapResponse . L.over L._1)
-                            (either (\(e, c) -> Left (e, R.fmapRadioX b1 b2 c))
-                                    (\(e, c) -> Right(e, R.fmapRadioO b1 b2 c)))
+                            (bimapEither (L.over L._2 (R.fmapRadioX b1 b2))
+                                         (L.over L._2 (R.fmapRadioO b1 b2)))
                             (W.radioC u1 u2))
                     (R.fmapRadio b1 b2)
+
+bimapEither :: (a -> a') -> (b -> b') -> Either a b -> Either a' b'
+bimapEither f g = \case Left  a -> Left  (f a)
+                        Right a -> Right (g a)
 
 attach :: D e c b d -> D (e, a) (c, a) b d
 attach d1 = case d1 of
