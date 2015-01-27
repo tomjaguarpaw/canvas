@@ -36,6 +36,9 @@ data Element = GUICircles [GUICircle]
 
 type US = St.State Int
 
+runUS :: US a -> a
+runUS = flip St.evalState 0
+
 unique :: US T.Text
 unique = do
   i <- St.get
@@ -82,7 +85,7 @@ firstJust Nothing (Just b) = Just b
 firstJust Nothing Nothing = Nothing
 
 handleMessage :: Doc d a -> Message -> Maybe a
-handleMessage (Doc t) = snd (St.evalState t 0)
+handleMessage (Doc t) = snd (runUS t)
 
 circlesSvg :: [GUICircle] -> (S.Svg, [a])
 circlesSvg cs = ((documentSvg h w . sequence_ . package [0..]) cs, [])
@@ -155,11 +158,13 @@ selectHtml s = (html, js) where
 
 
 renderElements :: Doc [Element] a -> T.Text
-renderElements (Doc t) = (embracket
-                          . encodeObject
-                          . HashMap.fromList) [("html", html), ("js", js)]
+renderElements (Doc t) = (renderElements' . fst . runUS) t
 
-  where total = (map elementHtml . fst . flip St.evalState 0) t
+renderElements' :: [Element] -> T.Text
+renderElements' t = (embracket
+                     . encodeObject
+                     . HashMap.fromList) [("html", html), ("js", js)]
+  where total = map elementHtml t
         html = (renderHtml . sequence_ . map fst) total
         js = (T.intercalate ";\n" . concatMap snd) total
         embracket x = "(" <> x <> ")"

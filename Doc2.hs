@@ -2,6 +2,8 @@
 
 module Doc2 where
 
+import qualified Network.WebSockets as WS
+import qualified Data.List.NonEmpty as NEL
 import qualified Doc as D
 import qualified Circle as C
 import qualified Websocket as W
@@ -25,6 +27,10 @@ pairD d1 d2 = case d1 of
 mapEvent :: (e -> e') -> D e c b d -> D e' c b d
 mapEvent f d1 = case d1 of
   D c u b -> D c (D.fmapResponse (L.over L._1 f) . u) b
+
+mapDoc :: (d -> d') -> D e c b d -> D e c b d'
+mapDoc f d1 = case d1 of
+  D c u b -> D c (fmap f . u) b
 
 comapCreate :: (c' -> c) -> D e c b d -> D e c' b d
 comapCreate f d1 = case d1 of D c u b -> D (c . f) u b
@@ -82,3 +88,38 @@ radioC = mapEvent (const ())
                                                    C.unselectedOfSelected
                                                    xc)
                                   _                         -> Nothing))
+radioC' :: D ()
+             (R.Radio C.Selected C.Unselected) (R.Radio C.Selected C.Unselected)
+             [D.Element]
+radioC' = mapDoc (return . D.GUICircles . concat . NEL.toList . R.radioToNEL) radioC
+
+runD :: (d -> IO D.Message) -> D e c b d -> c -> IO a
+runD f d cs = case d of D c u _ -> run f u (c cs)
+
+run :: (d -> IO D.Message) -> (r -> D.DocF (e, r) d) -> r -> IO a
+run f fd r = do
+  let D.Doc u = fd r
+      (d, m)  = D.runUS u
+  message <- f d
+  run f fd $ case m message of Nothing      -> r
+                               Just (_, r') -> r'
+
+runServer :: WS.PendingConnection -> IO ()
+runServer pc = do
+  conn <- WS.acceptRequest pc
+
+  let initialGui = R.Chosen C.selectedMake
+                          [ C.unselectedMake, C.unselectedMake, C.unselectedMake ]
+
+      handler d = do
+        WS.sendTextData conn (D.renderElements' d)
+        msg <- WS.receiveData conn
+        print msg
+        return msg
+
+  runD handler radioC' initialGui
+
+
+main :: IO ()
+main = do
+  WS.runServer "0.0.0.0" 9998 runServer
