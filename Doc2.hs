@@ -25,8 +25,21 @@ mapEvent :: (e -> e') -> D e c b d -> D e' c b d
 mapEvent f d1 = case d1 of
   D c u b -> D c (D.fmapResponse (L.over L._1 f) . u) b
 
+comapCreate :: (c' -> c) -> D e c b d -> D e c' b d
+comapCreate f d1 = case d1 of D c u b -> D (c . f) u b
+
 toD :: (a -> DocF (e, a) d) -> D e a a d
 toD f = D id f id
+
+handle :: (b -> e -> b -> Maybe c) -> D e c b d -> D e c b d
+handle f d1 = case d1 of
+  D c1 u1 b1 -> D c1
+                  (\ro -> D.fmapResponse (\(e, rn) ->
+                                           case f (b1 ro) e (b1 rn) of
+                                             Nothing -> (e, rn)
+                                             Just cn -> (e, c1 cn)
+                                           ) (u1 ro))
+                  b1
 
 plainRadio :: W.Widget dxx e x -> W.Widget doo e o
            -> W.Widget (R.Radio dxx doo) e (R.Radio x o)
@@ -39,13 +52,17 @@ plainRadio w1 w2 = W.radioW
                   { W.responseEvent = W.event b
                   , W.responseWhole = W.newWhole b }
 
-radio :: D e c1 b1 d1
-      -> D e c2 b2 d2
-      -> D e (R.Radio c1 c2) (R.Radio b1 b2) (R.Radio d1 d2)
+radio :: D ex cx bx dxx
+      -> D eo co bo doo
+      -> D (Either (ex, R.RadioX bx bo) (eo, R.RadioO bx bo))
+           (R.Radio cx co) (R.Radio bx bo) (R.Radio dxx doo)
 radio d1 d2 = case d1 of
   D c1 u1 b1 -> case d2 of
     D c2 u2 b2 -> D (R.fmapRadio c1 c2)
-                    (plainRadio u1 u2)
+                    ((fmap.D.fmapResponse. (L.over L._1))
+                            (either (\(e, c) -> Left (e, R.fmapRadioX b1 b2 c))
+                                    (\(e, c) -> Right(e, R.fmapRadioO b1 b2 c)))
+                            (W.radioC u1 u2))
                     (R.fmapRadio b1 b2)
 
 attach :: D e c b d -> D (e, a) (c, a) b d
@@ -53,10 +70,3 @@ attach d1 = case d1 of
   D c1 u1 b1 -> D (L.over L._1 c1)
                   (\(r, a) -> D.fmapResponse (\(e, rn) -> ((e, a), (rn, a))) (u1 r))
                   (b1 . fst)
-
-radioR :: D e1 c1 b1 d1
-       -> D e2 c2 b2 d2
-       -> D (Either (e1, a1) (e2, a2)) (R.Radio (c1, a1) (c2, a2))
-            (R.Radio b1 b2) (R.Radio d1 d2)
-radioR d1 d2 = radio (mapEvent Left  (attach d1))
-                     (mapEvent Right (attach d2))

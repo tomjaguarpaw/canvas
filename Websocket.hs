@@ -104,15 +104,16 @@ vertW' cx cy = supertraverse fx fy
         supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
 
 radioC :: Widget dxx evx x -> Widget doo evo o
-       -> Widget (Radio dxx doo) (Either (RadioX x o) (RadioO x o)) (Radio x o)
+       -> Widget (Radio dxx doo) (Either (evx, RadioX x o) (evo, RadioO x o))
+                 (Radio x o)
 radioC wx wo = radioW
   Component { widget  = wx
             , handler = \b -> Response
-                { responseEvent = Left (newContext b)
+                { responseEvent = Left (event b, newContext b)
                 , responseWhole = newWhole b } }
   Component { widget  = wo
             , handler = \b -> Response
-                { responseEvent = Right (newContext b)
+                { responseEvent = Right (event b, newContext b)
                 , responseWhole = newWhole b } }
 
 radioE :: Widget dxx evx x -> Widget doo evo o
