@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
+module Websocket where
+
 import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
 import           Radio              (RadioX, RadioO, Radio(Chosen),
