@@ -98,11 +98,17 @@ runD f d cs = case d of D c u _ -> run f u (c cs)
 
 run :: (d -> IO D.Message) -> (r -> D.DocF (e, r) d) -> r -> IO a
 run f fd r = do
+  r' <- run' f fd r
+  run f fd r'
+
+run' :: (d -> IO D.Message) -> (r -> D.DocF (e, r) d) -> r -> IO r
+run' f fd r = do
   let D.Doc u = fd r
       (d, m)  = D.runUS u
   message <- f d
-  run f fd $ case m message of Nothing      -> r
-                               Just (_, r') -> r'
+  return $ case m message of Nothing      -> r
+                             Just (_, r') -> r'
+
 
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
