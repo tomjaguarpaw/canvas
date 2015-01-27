@@ -185,3 +185,12 @@ chooseIndex n (Unchosen a as) = Unchosen a (chooseIndex (n-1) as)
 chosen :: Functor f => L.LensLike' f (Radio x o) x
 chosen f (Chosen x os) = fmap (\x' -> Chosen x' os) (f x)
 chosen f (Unchosen o rs) = fmap (Unchosen o) (chosen f rs)
+
+fmapRadioX :: (x -> x') -> (o -> o') -> RadioX x o -> RadioX x' o'
+fmapRadioX fx fo (At os x os') = At (fmap fo os) (fx x) (fmap fo os')
+
+fmapRadioO :: (x -> x') -> (o -> o') -> RadioO x o -> RadioO x' o'
+fmapRadioO fx fo = \case (Before cs o os) -> Before (fmapRadio fx fo cs)
+                                                    (fo o) (fmap fo os)
+                         (After os o rs)  -> After (fmap fo os) (fo o)
+                                                   (fmapRadio fx fo rs)
