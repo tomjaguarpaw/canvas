@@ -21,6 +21,10 @@ pairD d1 d2 = case d1 of
                       (D.fmapResponse (L.over L._2 (\r2n -> (r1, r2n))) (u2 r2)))
                     (b1 *** b2)
 
+mapEvent :: (e -> e') -> D e c b d -> D e' c b d
+mapEvent f d1 = case d1 of
+  D c u b -> D c (D.fmapResponse (L.over L._1 f) . u) b
+
 toD :: (a -> DocF (e, a) d) -> D e a a d
 toD f = D id f id
 
@@ -49,3 +53,10 @@ attach d1 = case d1 of
   D c1 u1 b1 -> D (L.over L._1 c1)
                   (\(r, a) -> D.fmapResponse (\(e, rn) -> ((e, a), (rn, a))) (u1 r))
                   (b1 . fst)
+
+radioR :: D e1 c1 b1 d1
+       -> D e2 c2 b2 d2
+       -> D (Either (e1, a1) (e2, a2)) (R.Radio (c1, a1) (c2, a2))
+            (R.Radio b1 b2) (R.Radio d1 d2)
+radioR d1 d2 = radio (mapEvent Left  (attach d1))
+                     (mapEvent Right (attach d2))
