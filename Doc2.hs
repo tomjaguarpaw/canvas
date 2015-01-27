@@ -14,15 +14,15 @@ import           Control.Arrow ((***))
 import qualified Control.Lens as L
 import           Control.Applicative (liftA2)
 
-data D e c b d = forall r. D (c -> r) (r -> DocF (e, r) d) (r -> b)
+data D e c b d = forall s. D (c -> s) (s -> DocF (e, s) d) (s -> b)
 
 pairD :: D e c b d -> D e c' b' d' -> D e (c, c') (b, b') (d, d')
 pairD d1 d2 = case d1 of
   D c1 u1 b1 -> case d2 of
     D c2 u2 b2 -> D (c1 *** c2)
-                    (\(r1, r2) -> liftA2 (,)
-                      (D.fmapResponse (L.over L._2 (\r1n -> (r1n, r2))) (u1 r1))
-                      (D.fmapResponse (L.over L._2 (\r2n -> (r1, r2n))) (u2 r2)))
+                    (\(s1, s2) -> liftA2 (,)
+                      (D.fmapResponse (L.over L._2 (\s1n -> (s1n, s2))) (u1 s1))
+                      (D.fmapResponse (L.over L._2 (\s2n -> (s1, s2n))) (u2 s2)))
                     (b1 *** b2)
 
 mapEvent :: (e -> e') -> D e c b d -> D e' c b d
@@ -42,11 +42,11 @@ toD f = D id f id
 handle :: (b -> e -> b -> Maybe c) -> D e c b d -> D e c b d
 handle f d1 = case d1 of
   D c1 u1 b1 -> D c1
-                  (\ro -> D.fmapResponse (\(e, rn) ->
-                                           case f (b1 ro) e (b1 rn) of
-                                             Nothing -> (e, rn)
+                  (\so -> D.fmapResponse (\(e, sn) ->
+                                           case f (b1 so) e (b1 sn) of
+                                             Nothing -> (e, sn)
                                              Just cn -> (e, c1 cn)
-                                           ) (u1 ro))
+                                           ) (u1 so))
                   b1
 
 plainRadio :: W.Widget dxx e x -> W.Widget doo e o
@@ -80,7 +80,7 @@ bimapEither f g = \case Left  a -> Left  (f a)
 attach :: D e c b d -> D (e, a) (c, a) b d
 attach d1 = case d1 of
   D c1 u1 b1 -> D (L.over L._1 c1)
-                  (\(r, a) -> D.fmapResponse (\(e, rn) -> ((e, a), (rn, a))) (u1 r))
+                  (\(s, a) -> D.fmapResponse (\(e, sn) -> ((e, a), (sn, a))) (u1 s))
                   (b1 . fst)
 
 radioC :: D ()
@@ -106,18 +106,18 @@ radioC' = mapDoc (return . D.GUICircles . concat . NEL.toList . R.radioToNEL) ra
 runD :: (d -> IO D.Message) -> D e c b d -> c -> IO a
 runD f d cs = case d of D c u _ -> run f u (c cs)
 
-run :: (d -> IO D.Message) -> (r -> D.DocF (e, r) d) -> r -> IO a
-run f fd r = do
-  r' <- run' f fd r
-  run f fd r'
+run :: (d -> IO D.Message) -> (s -> D.DocF (e, s) d) -> s -> IO a
+run f fd s = do
+  s' <- run' f fd s
+  run f fd s'
 
-run' :: (d -> IO D.Message) -> (r -> D.DocF (e, r) d) -> r -> IO r
-run' f fd r = do
-  let D.Doc u = fd r
+run' :: (d -> IO D.Message) -> (s -> D.DocF (e, s) d) -> s -> IO s
+run' f fd s = do
+  let D.Doc u = fd s
       (d, m)  = D.runUS u
   message <- f d
-  return $ case m message of Nothing      -> r
-                             Just (_, r') -> r'
+  return $ case m message of Nothing      -> s
+                             Just (_, s') -> s'
 
 
 runServer :: WS.PendingConnection -> IO ()
