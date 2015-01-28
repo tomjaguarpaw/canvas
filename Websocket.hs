@@ -111,6 +111,23 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
               in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)))
                                       (widget co (R.focusedO radioOOld))
 
+radioA :: Widget d1 e x -> Widget d2 e o
+       -> Radio (x, a) (o, a)
+       -> D.DocF ((e, a), Radio x o) (Radio d1 d2)
+radioA wx wo = R.traverseRadio (A.liftA2 (,))
+               . extendRadio fx fo
+  where fx radioXAOld = D.fmapResponse (\(ev, (xNew, a)) ->
+              let radioXOld = R.fmapRadioX fst fst radioXAOld
+                  radioXNew = R.setFocusedX xNew radioXOld
+              in ((ev, a), R.stampX radioXNew))
+                        (let (xOld, a) = R.focusedX radioXAOld
+                         in D.fmapResponse ((L.over L._2) (\xNew -> (xNew, a))) (wx xOld))
+        fo radioOAOld = D.fmapResponse (\(ev, (oNew, a)) ->
+              let radioOOld = R.fmapRadioO fst fst radioOAOld
+                  radioONew = R.setFocusedO oNew radioOOld
+              in ((ev, a), R.stampO radioONew))
+                        (let (oOld, a) = R.focusedO radioOAOld
+                         in D.fmapResponse ((L.over L._2) (\xNew -> (xNew, a))) (wo oOld))
 
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
