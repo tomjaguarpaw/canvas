@@ -16,7 +16,7 @@ handleSelectionChange :: T.TextEntryEvent
 handleSelectionChange ev t = let T.Input i _ = ev
                              in L.set (L._2.S.sRadio.R.chosen.L._1) i t
 
-handleTextChange :: (T.TextEntry, S.Select ()) -> (T.TextEntry, S.Select ())
+handleTextChange :: (T.TextEntry, S.Select a) -> (T.TextEntry, S.Select a)
 handleTextChange t = let newW = t
                          newText = L.view (L._2.S.sRadio.R.chosen.L._1) newW
                      in (L.set (L._1.T.tText) newText
