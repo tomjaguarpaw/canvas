@@ -20,8 +20,11 @@ parseSelectEvent :: T.Text -> Maybe (Int -> a -> SelectEvent a)
 parseSelectEvent = \case "choose" -> Just Choice
                          _        -> Nothing
 
+selectMakeA :: NEL.NonEmpty (T.Text, a) -> Select a
+selectMakeA l = Select { _sRadio = R.chooseFirstNEL l }
+
 selectMake :: NEL.NonEmpty T.Text -> Select ()
-selectMake l = Select { _sRadio = R.fmapRadio u u (R.chooseFirstNEL l) }
+selectMake = selectMakeA . fmap u
   where u x = (x, ())
 
 selectHandle :: SelectEvent a -> Select a -> Select a
