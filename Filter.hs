@@ -23,18 +23,6 @@ $(L.makeLenses ''Filter)
 
 filter :: Filter -> D.DocF ((), Filter) [D.Element]
 filter (Filter a t tt s) = D.fmapResponse (L.set L._1 ()) $
-                           D.fmapResponse (\(ev, a') ->
-                             case ev of (Left (Right (T.Input i _))) ->
-                                          (ev, L.set (fSe.S.sRadio.R.chosen.L._1) i a')
-                                        ev' -> (ev', a')
-                             ) $
-                           D.fmapResponse (\(ev, a') ->
-                             case ev of Right _ ->
-                                          let t = L.view fEd a'
-                                              s = L.view fSe a'
-                                              (t', s') = TS.handleTextChange (t, s)
-                                          in (ev, (L.set fEd t' . L.set fSe s') a')
-                                        ev' -> (ev', a')) $
                            D.fmapResponse (L.over L._2 (\((a', t'), (tt', s')) ->
                                                          Filter a' t' tt' s')) $
                            fmap (\(((), e1), e2) -> e1 ++ e2) $
