@@ -11,8 +11,8 @@ import           Widget             (Widget, Behaviours(..), Response(..),
                                      Component(..), vertW')
 
 handleSelectionChange :: T.TextEntryEvent
-                      -> (T.TextEntry, S.Select ())
-                      -> (T.TextEntry, S.Select ())
+                      -> (T.TextEntry, S.Select a)
+                      -> (T.TextEntry, S.Select a)
 handleSelectionChange ev t = let T.Input i _ = ev
                              in L.set (L._2.S.sRadio.R.chosen.L._1) i t
 
@@ -23,14 +23,15 @@ handleTextChange t = let newW = t
                          . L.set (L._1.T.tPosition)
                          ((fromIntegral . DT.length) newText)) newW
 
-textSelect :: Widget [D.Element] () (T.TextEntry, S.Select ())
+textSelect :: Widget [D.Element] (Either T.TextEntryEvent (S.SelectEvent a))
+                                 (T.TextEntry, S.Select a)
 textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = T.textEntryC
             , handler = \b ->
-                Response { responseEvent = ()
+                Response { responseEvent = Left (event b)
                          , responseWhole = handleSelectionChange
                                                   (event b) (newWhole b)} }
   Component { widget  = S.selectC
             , handler = \b ->
-                Response { responseEvent = ()
+                Response { responseEvent = Right (event b)
                          , responseWhole = handleTextChange (newWhole b) } }
