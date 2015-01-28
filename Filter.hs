@@ -35,14 +35,13 @@ filter (Filter a t tt s) = D.fmapResponse (L.set L._1 ()) $
                                               (t', s') = TS.handleTextChange (t, s)
                                           in (ev, (L.set fEd t' . L.set fSe s') a')
                                         ev' -> (ev', a')) $
-                           D.fmapResponse (L.over L._2 (\(((a', t'), tt'), s') ->
+                           D.fmapResponse (L.over L._2 (\((a', t'), (tt', s')) ->
                                                          Filter a' t' tt' s')) $
-                           fmap (\((((), e1), e2), e3) -> e1 ++ e2 ++ e3) $
+                           fmap (\(((), e1), e2) -> e1 ++ e2) $
                            (D.static
                             `W.pair` T.textEntryC
-                            `W.pair` T.textEntryC
-                            `W.pair` S.selectC)
-                           (((a, t), tt), s)
+                            `W.pair` TS.textSelect)
+                           ((a, t), (tt, s))
 
 filterMake :: Filter
 filterMake = Filter (Available (R.Chosen "ignored" []))
