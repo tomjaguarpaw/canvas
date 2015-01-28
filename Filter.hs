@@ -47,5 +47,6 @@ filter (Filter a t tt s) = D.fmapResponse (L.set L._1 ()) $
 filterMake :: Filter
 filterMake = Filter (Available (R.Chosen "ignored" []))
                     (T.textEntryMake "filterer")
-                    (T.textEntryMake "editor")
-                    (S.selectMakeA (("foo", 1) NEL.:| [("bar", 2), ("baz", 3)]))
+                    (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select))
+                    select
+  where select = S.selectMakeA (("quux", 1) NEL.:| [("bar", 2), ("baz", 3)])
