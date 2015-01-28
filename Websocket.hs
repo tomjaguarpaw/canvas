@@ -19,8 +19,11 @@ import           Circle             (CircleEvent(MouseClick),
                                      selectedOfUnselected, unselectedOfSelected,
                                      selectedC, unselectedC)
 import qualified Control.Lens       as L
-import qualified Data.Text.Lazy     as DT
 import qualified Control.Applicative as A
+import           Widget             (Widget, Behaviours(..), Response(..),
+                                     Component(..), tupleOfResponse, vertW')
+import qualified TextSelect         as TS
+import qualified Filter             as F
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
@@ -39,69 +42,6 @@ canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
 
 elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = D.elementOfCircles . canvasRadio
-
-type Widget' d ev x x' = x -> D.Doc d (ev, x')
-type Widget  d ev x = Widget' d ev x x
-
-data Behaviours ev xa xc x = Behaviours { oldComponent :: x
-                                        , oldContext   :: xc
-                                        , oldWhole     :: xa
-                                        , newComponent :: x
-                                        , newContext   :: xc
-                                        , newWhole     :: xa
-                                        , event        :: ev
-                                        , fromComponent :: x  -> xa
-                                        , fromContext   :: xc -> xa
-                                        , fromWhole     :: xa -> xa }
-
-data Response ev xa = Response { responseWhole :: xa
-                               , responseEvent :: ev }
-
-data Component d ev ev' xa xc x = Component { widget  :: Widget d ev x
-                                            , handler :: Behaviours ev xa xc x
-                                                      -> Response ev' xa }
-
-tupleOfResponse :: Response ev xa -> (ev, xa)
-tupleOfResponse r = (responseEvent r, responseWhole r)
-
-vertW' :: Component d1 e1 ev' (x, y) (x, y) x
-       -> Component d2 e2 ev' (x, y) (x, y) y
-       -> Widget (d1, d2) ev' (x, y)
-vertW' cx cy = supertraverse fx fy
-  where behaviourX ev told tnew = Behaviours {
-            oldComponent = fst told
-          , oldContext   = told
-          , oldWhole     = told
-          , newComponent = fst tnew
-          , newContext   = tnew
-          , newWhole     = tnew
-          , event        = ev
-          , fromComponent = \x -> L.set L._1 x told
-          , fromContext   = id
-          , fromWhole     = id }
-        behaviourY ev told tnew = Behaviours {
-            oldComponent = snd told
-          , oldContext   = told
-          , oldWhole     = told
-          , newComponent = snd tnew
-          , newContext   = tnew
-          , newWhole     = tnew
-          , event        = ev
-          , fromComponent = \y -> L.set L._2 y told
-          , fromContext   = id
-          , fromWhole     = id }
-
-        fx told = D.fmapResponse (\(ev, xNew) ->
-          let tnew = L.set L._1 xNew told
-          in tupleOfResponse (handler cx (behaviourX ev told tnew)))
-                  (widget cx (fst told))
-
-        fy told = D.fmapResponse (\(ev, yNew) ->
-          let tnew = L.set L._2 yNew told
-          in tupleOfResponse (handler cy (behaviourY ev told tnew)))
-                  (widget cy (snd told))
-
-        supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
 
 radioC :: Widget dxx evx x -> Widget doo evo o
        -> Widget (Radio dxx doo) (Either (evx, RadioX x o) (evo, RadioO x o))
@@ -172,17 +112,6 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
                                       (widget co (R.focusedO radioOOld))
 
 
-pair :: Widget d1 ev1 x1
-     -> Widget d2 ev2 x2
-     -> Widget (d1, d2) (Either ev1 ev2) (x1, x2)
-pair w1 w2 = vertW'
-  Component { widget = w1
-            , handler = \b -> Response { responseEvent = Left (event b)
-                                       , responseWhole = newWhole b } }
-  Component { widget = w2
-            , handler = \b -> Response { responseEvent = Right (event b)
-                                       , responseWhole = newWhole b } }
-
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
      -> Widget [D.Element] (Either ev ev') (x, x')
@@ -205,32 +134,6 @@ resetter = D.mapWidgetDoc (uncurry (++)) $ vertW'
                                       L.over L._1 chooseFirst' (newWhole b) } }
   where chooseFirst' = R.chooseFirst selectedOfUnselected unselectedOfSelected
 
-
-textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
-textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
-  Component { widget  = T.textEntryC
-            , handler = \b ->
-                Response { responseEvent = ()
-                         , responseWhole = handleSelectionChange
-                                                  (event b) (newWhole b)} }
-  Component { widget  = S.selectC
-            , handler = \b ->
-                Response { responseEvent = ()
-                         , responseWhole = handleTextChange (newWhole b) } }
-
-handleSelectionChange :: T.TextEntryEvent
-                      -> (T.TextEntry, S.Select)
-                      -> (T.TextEntry, S.Select)
-handleSelectionChange ev t = let T.Input i _ = ev
-                             in L.set (L._2.S.sRadio.R.chosen) i t
-
-handleTextChange :: (T.TextEntry, S.Select) -> (T.TextEntry, S.Select)
-handleTextChange t = let newW = t
-                         newText = L.view (L._2.S.sRadio.R.chosen) newW
-                     in (L.set (L._1.T.tText) newText
-                         . L.set (L._1.T.tPosition)
-                         ((fromIntegral . DT.length) newText)) newW
-
 runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
@@ -238,9 +141,10 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn (resetter `vert` textSelect)
-               (((initialGui, B.buttonMake "Reset"),
-                 (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
+  loopGUI conn ((resetter `vert` TS.textSelect) `vert` F.filter)
+               ((((initialGui, B.buttonMake "Reset"),
+                 (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))),
+                F.filterMake)
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do

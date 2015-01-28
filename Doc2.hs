@@ -16,6 +16,8 @@ import qualified Radio as R
 import           Control.Arrow ((***))
 import qualified Control.Lens as L
 import           Control.Applicative (liftA2)
+import qualified Widget as W
+import qualified TextSelect as TS
 
 data D e c b d = forall s. D (c -> s) (s -> DocF (e, s) d) (s -> b)
 
@@ -112,8 +114,8 @@ radioC' = mapDoc (return . D.GUICircles . concat . NEL.toList . R.radioToNEL) ra
 textSelect :: D () (T.TextEntry, S.Select) (T.TextEntry, S.Select) [D.Element]
 textSelect = (mapEvent (const ())
               . handle (\_ ev t -> case ev of
-                           Left ev' -> Just (W.handleSelectionChange ev' t)
-                           Right _ -> Just (W.handleTextChange t))
+                           Left ev' -> Just (TS.handleSelectionChange ev' t)
+                           Right _ -> Just (TS.handleTextChange t))
               . mapDoc (uncurry (++)))
              (pairE (toD T.textEntryC) (toD S.selectC))
 
