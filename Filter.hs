@@ -14,7 +14,7 @@ import qualified TextSelect         as TS
 
 data Available = Available (R.Radio DT.Text DT.Text)
 
-data Filter = Filter Available T.TextEntry (T.TextEntry, S.Select)
+data Filter = Filter Available T.TextEntry (T.TextEntry, S.Select ())
 
 filter :: Filter -> D.DocF ((), Filter) [D.Element]
 filter (Filter a t p) = D.fmapResponse (L.set L._1 ()) $

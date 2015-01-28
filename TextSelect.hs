@@ -11,19 +11,19 @@ import           Widget             (Widget, Behaviours(..), Response(..),
                                      Component(..), vertW')
 
 handleSelectionChange :: T.TextEntryEvent
-                      -> (T.TextEntry, S.Select)
-                      -> (T.TextEntry, S.Select)
+                      -> (T.TextEntry, S.Select ())
+                      -> (T.TextEntry, S.Select ())
 handleSelectionChange ev t = let T.Input i _ = ev
-                             in L.set (L._2.S.sRadio.R.chosen) i t
+                             in L.set (L._2.S.sRadio.R.chosen.L._1) i t
 
-handleTextChange :: (T.TextEntry, S.Select) -> (T.TextEntry, S.Select)
+handleTextChange :: (T.TextEntry, S.Select ()) -> (T.TextEntry, S.Select ())
 handleTextChange t = let newW = t
-                         newText = L.view (L._2.S.sRadio.R.chosen) newW
+                         newText = L.view (L._2.S.sRadio.R.chosen.L._1) newW
                      in (L.set (L._1.T.tText) newText
                          . L.set (L._1.T.tPosition)
                          ((fromIntegral . DT.length) newText)) newW
 
-textSelect :: Widget [D.Element] () (T.TextEntry, S.Select)
+textSelect :: Widget [D.Element] () (T.TextEntry, S.Select ())
 textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = T.textEntryC
             , handler = \b ->
