@@ -76,6 +76,9 @@ data GUITextEntry = GUITextEntry { gtName     :: T.Text
 data GUISelect = GUISelect { gsName  :: T.Text
                            , gsRadio :: R.Radio T.Text T.Text }
 
+static :: a -> DocF e ()
+static = const (pure ())
+
 vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
 vert = liftA2 (++)
 
