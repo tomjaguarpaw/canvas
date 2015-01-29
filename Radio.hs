@@ -94,6 +94,13 @@ stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)
 stampO (After os o rs)  = (os ++ [o]) `prependO` rs
 
+traverseRadio' :: A.Applicative f
+               => (x -> f x')
+               -> (o -> f o')
+               -> Radio x o
+               -> f (Radio x' o')
+traverseRadio' fx fo = traverseRadio (A.liftA2 (,)) . fmapRadio fx fo
+
 traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
