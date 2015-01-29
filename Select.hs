@@ -12,8 +12,9 @@ import           Control.Monad      (guard)
 import qualified Data.List.NonEmpty as NEL
 import           Text.Read          (readMaybe)
 
-data SelectEvent a = Choice Int a
+data SelectEvent a = Choice { _cId :: Int, _cEv :: a }
 data Select a = Select { _sRadio :: R.Radio (T.Text, a) (T.Text, a) }
+$(L.makeLenses ''SelectEvent)
 $(L.makeLenses ''Select)
 
 parseSelectEvent :: T.Text -> Maybe (Int -> a -> SelectEvent a)
