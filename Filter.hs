@@ -13,6 +13,11 @@ import qualified Doc                as D
 import qualified Widget             as W
 import qualified Control.Lens       as L
 
+data Void = Void !Void
+
+absurd :: Void -> a
+absurd (Void v) = absurd v
+
 data Available = Available (R.Radio DT.Text DT.Text)
 
 data Filter = Filter { _fAv :: Available
@@ -21,8 +26,9 @@ data Filter = Filter { _fAv :: Available
                      , _fSe :: (S.Select Int) }
 $(L.makeLenses ''Filter)
 
-filter :: Filter -> D.DocF ((), Filter) [D.Element]
-filter (Filter a t tt s) = D.fmapResponse (L.set L._1 ()) $
+filter :: Filter -> D.DocF (Either T.TextEntryEvent
+                          (Either T.TextEntryEvent (S.SelectEvent Int)), Filter) [D.Element]
+filter (Filter a t tt s) = D.fmapResponse (L.over (L._1.L._Left) (either absurd id)) $
                            D.fmapResponse (L.over L._2 (\((a', t'), (tt', s')) ->
                                                          Filter a' t' tt' s')) $
                            fmap (\(((), e1), e2) -> e1 ++ e2) $
