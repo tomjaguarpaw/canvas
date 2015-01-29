@@ -28,16 +28,16 @@ $(L.makeLenses ''Filter)
 
 filterB :: Filter -> D.DocF (Either T.TextEntryEvent
                           (Either T.TextEntryEvent (S.SelectEvent Int)), Filter) [D.Element]
-filterB = (D.fmapResponse (perhaps (\(ev, a) ->
-  ev L.^? (L._Right.L._Left) L.<&>
-      (\_ -> (ev, L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a)))))
-          . (D.fmapResponse (perhaps (\(ev, a) ->
-  ev L.^? L._Left L.<&>
-      (\_ -> (ev, L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a)))))
-          . (D.fmapResponse (perhaps (\(ev, a) ->
-  ev L.^? (L._Right.L._Right.S.cEv) L.<&>
-     (\i -> (ev, L.over (fAv.aAv) (R.chooseIndex i) a)))))
+filterB = eventMatches (L._Right.L._Left)
+      (\_ (ev, a) -> (ev, L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a))
+          . eventMatches L._Left
+      (\_ (ev, a) -> (ev, L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a))
+          . eventMatches (L._Right.L._Right.S.cEv)
+      (\i (ev, a) -> (ev, L.over (fAv.aAv) (R.chooseIndex i) a))
           . filterA
+
+eventMatches l f = D.fmapResponse (perhaps (\(ev, a) ->
+  ev L.^? l L.<&> (\ev' -> f ev' (ev, a))))
 
 perhaps :: (a -> Maybe a) -> a -> a
 perhaps f a = case f a of Nothing -> a
