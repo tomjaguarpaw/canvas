@@ -17,13 +17,14 @@ data Void = Void !Void
 absurd :: Void -> a
 absurd (Void v) = absurd v
 
-data Available = Available { _aAv :: R.Radio DT.Text DT.Text }
+data Available = Available { _aAv :: R.Radio DT.Text DT.Text } deriving Show
 $(L.makeLenses ''Available)
 
 data Filter = Filter { _fAv :: Available
                      , _fFi :: T.TextEntry
                      , _fEd :: T.TextEntry
                      , _fSe :: (S.Select Int) }
+              deriving Show
 $(L.makeLenses ''Filter)
 
 

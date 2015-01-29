@@ -60,9 +60,9 @@ circle c = D.Doc $ do
 circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)
 circleC = D.widgetHandler circleHandle circle
 
-data Selected = Selected Circle
+data Selected = Selected Circle deriving Show
 
-data Unselected = Unselected Circle
+data Unselected = Unselected Circle  deriving Show
 
 selectedC :: Selected -> Doc [GUICircle] (CircleEvent, Selected)
 selectedC = D.widgetHandler selectedHandle (circle . unselected)

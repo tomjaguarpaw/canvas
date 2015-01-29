@@ -12,11 +12,12 @@ import qualified Doc                as D
 import           Text.Read          (readMaybe)
 import           Control.Applicative ((<*>), pure)
 import           Control.Monad      (guard)
+import qualified Focused            as F
 
 data TextEntryEvent = Input T.Text Int
 data TextEntry = TextEntry { _tText     :: T.Text
                            , _tFocused  :: Bool
-                           , _tPosition :: Int }
+                           , _tPosition :: Int } deriving Show
 $(L.makeLenses ''TextEntry)
 
 parseTextEntryEvent :: T.Text -> Maybe (T.Text -> Int -> TextEntryEvent)
