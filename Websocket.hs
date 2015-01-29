@@ -156,7 +156,7 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn ((resetter `vert` TS.textSelect) `vert` F.filter)
+  loopGUI conn ((resetter `vert` TS.textSelect) `vert` F.filterB)
                ((((initialGui, B.buttonMake "Reset"),
                  (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))),
                 F.filterMake)
