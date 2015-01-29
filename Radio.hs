@@ -7,6 +7,8 @@ import qualified Data.List.NonEmpty as NEL
 import           Data.List.NonEmpty (NonEmpty((:|)))
 import           Control.Arrow      ((>>>))
 import qualified Control.Lens       as L
+import qualified Control.Applicative as A
+import qualified Control.Monad.Trans.State as St
 
 data Radio x o = Chosen x [o]
                | Unchosen o (Radio x o)
@@ -210,3 +212,9 @@ fmapRadioO fx fo = \case (Before cs o os) -> Before (fmapRadio fx fo cs)
                                                     (fo o) (fmap fo os)
                          (After os o rs)  -> After (fmap fo os) (fo o)
                                                    (fmapRadio fx fo rs)
+
+filterRadio :: (o -> Bool) -> Radio x o -> Radio x o
+filterRadio f = \case Chosen x os   -> Chosen x (filter f os)
+                      Unchosen o rs -> (if f o
+                                        then Unchosen o
+                                        else id) (filterRadio f rs)
