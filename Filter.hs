@@ -26,13 +26,18 @@ data Filter = Filter { _fAv :: Available
                      , _fSe :: (S.Select Int) }
 $(L.makeLenses ''Filter)
 
-filterB :: Filter -> D.DocF (Either T.TextEntryEvent
-                          (Either T.TextEntryEvent (S.SelectEvent Int)), Filter) [D.Element]
-filterB = eventMatches' (L._Right.L._Left)
+
+data FilterEvent = FilterEvent T.TextEntryEvent
+                 | EditorEvent T.TextEntryEvent
+                 | SelectEvent (S.SelectEvent Int)
+$(L.makePrisms ''FilterEvent)
+
+filterB :: Filter -> D.DocF (FilterEvent, Filter) [D.Element]
+filterB = eventMatches' _EditorEvent
       (\_ a -> L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a)
-          . eventMatches' L._Left
+          . eventMatches' _FilterEvent
       (\_ a -> L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a)
-          . eventMatches' (L._Right.L._Right.S.cEv)
+          . eventMatches' (_SelectEvent.S.cEv)
       (\i a -> L.over (fAv.aAv) (R.chooseIndex i) a)
           . filterA
 
@@ -53,9 +58,10 @@ selectFromAvailable t = S.Select
                         . R.traverseRadio' R.enumerate R.enumerate
                         . L.view aAv
 
-filterA :: Filter -> D.DocF (Either T.TextEntryEvent
-                          (Either T.TextEntryEvent (S.SelectEvent Int)), Filter) [D.Element]
-filterA (Filter a t tt s) = D.fmapResponse (L.over (L._1.L._Left) (either absurd id)) $
+filterA :: Filter -> D.DocF (FilterEvent, Filter) [D.Element]
+filterA (Filter a t tt s) = D.fmapResponse (L.over L._1
+                                 (either (either absurd FilterEvent)
+                                         (either EditorEvent SelectEvent ))) $
                             D.fmapResponse (L.over L._2 (\((a', t'), (tt', s')) ->
                                                           Filter a' t' tt' s')) $
                             fmap (\(((), e1), e2) -> e1 ++ e2) $
