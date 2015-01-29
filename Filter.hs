@@ -28,13 +28,15 @@ $(L.makeLenses ''Filter)
 
 filterB :: Filter -> D.DocF (Either T.TextEntryEvent
                           (Either T.TextEntryEvent (S.SelectEvent Int)), Filter) [D.Element]
-filterB = eventMatches (L._Right.L._Left)
-      (\_ (ev, a) -> (ev, L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a))
-          . eventMatches L._Left
-      (\_ (ev, a) -> (ev, L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a))
-          . eventMatches (L._Right.L._Right.S.cEv)
-      (\i (ev, a) -> (ev, L.over (fAv.aAv) (R.chooseIndex i) a))
+filterB = eventMatches' (L._Right.L._Left)
+      (\_ a -> L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a)
+          . eventMatches' L._Left
+      (\_ a -> L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a)
+          . eventMatches' (L._Right.L._Right.S.cEv)
+      (\i a -> L.over (fAv.aAv) (R.chooseIndex i) a)
           . filterA
+
+eventMatches' l f = eventMatches l (\i (ev, a) -> (ev, f i a))
 
 eventMatches l f = D.fmapResponse (perhaps (\(ev, a) ->
   ev L.^? l L.<&> (\ev' -> f ev' (ev, a))))
