@@ -101,6 +101,15 @@ traverseRadio' :: A.Applicative f
                -> f (Radio x' o')
 traverseRadio' fx fo = traverseRadio (A.liftA2 (,)) . fmapRadio fx fo
 
+enumerate :: a -> St.State Int (a, Int)
+enumerate a = do
+  i <- St.get
+  St.put (i + 1)
+  return (a, i)
+
+getEnumerate :: St.State Int a -> a
+getEnumerate = flip St.evalState 0
+
 traverseRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
