@@ -6,25 +6,26 @@ import qualified Select             as S
 import qualified Control.Lens       as L
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
-
+import qualified Focused            as F
 import           Widget             (Widget, Behaviours(..), Response(..),
                                      Component(..), vertW')
 
 handleSelectionChange :: T.TextEntryEvent
-                      -> (T.TextEntry, S.Select a)
-                      -> (T.TextEntry, S.Select a)
+                      -> (F.Focused T.TextEntry, S.Select a)
+                      -> (F.Focused T.TextEntry, S.Select a)
 handleSelectionChange ev t = let T.Input i _ = ev
                              in L.set (L._2.S.sRadio.R.chosen.L._1) i t
 
-handleTextChange :: (T.TextEntry, S.Select a) -> (T.TextEntry, S.Select a)
+handleTextChange :: (F.Focused T.TextEntry, S.Select a)
+                 -> (F.Focused T.TextEntry, S.Select a)
 handleTextChange t = let newW = t
                          newText = L.view (L._2.S.sRadio.R.chosen.L._1) newW
-                     in (L.set (L._1.T.tText) newText
-                         . L.set (L._1.T.tPosition)
+                     in (L.set (L._1.F.contentsS.T.tText) newText
+                         . L.set (L._1.F.contentsS.T.tPosition)
                          ((fromIntegral . DT.length) newText)) newW
 
 textSelect :: Widget [D.Element] (Either T.TextEntryEvent (S.SelectEvent a))
-                                 (T.TextEntry, S.Select a)
+                                 (F.Focused T.TextEntry, S.Select a)
 textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = T.textEntryC
             , handler = \b ->
@@ -35,3 +36,11 @@ textSelect = D.mapWidgetDoc (uncurry (++)) $ vertW'
             , handler = \b ->
                 Response { responseEvent = Right (event b)
                          , responseWhole = handleTextChange (newWhole b) } }
+
+textSelectF :: Widget [D.Element] (Either T.TextEntryEvent (S.SelectEvent a))
+                                 (F.Focused (T.TextEntry, S.Select a))
+textSelectF t = D.fmapNewState (\(fte', sel)
+                                          -> fmap (\x -> (x, sel)) fte')
+                          (textSelect (fte, sel))
+  where (_, sel) = F.mostFocused t
+        fte = fmap fst t

@@ -27,10 +27,12 @@ parseTextEntryEvent = \case "input" -> Just Input
 textEntryMake :: T.Text -> TextEntry
 textEntryMake t = TextEntry { _tText = t, _tFocused = False, _tPosition = 0 }
 
-textEntryHandle :: TextEntryEvent -> TextEntry -> TextEntry
-textEntryHandle (Input n p) _ = TextEntry { _tText    = n
-                                          , _tFocused = True
-                                          , _tPosition = p }
+textEntryHandle :: TextEntryEvent -> TextEntry -> F.Focused TextEntry
+textEntryHandle (Input n p) _ = F.Focused { F._mFocused  = Just (te True)
+                                          , F._defocused = te False }
+  where te f = TextEntry { _tText    = n
+                         , _tFocused = f
+                         , _tPosition = p }
 
 guiTextEntry :: T.Text -> TextEntry -> D.GUITextEntry
 guiTextEntry n b = D.GUITextEntry { D.gtName     = n
@@ -50,6 +52,10 @@ textEntry b = D.Doc $ do
                                            <*> pure theValue
                                            <*> (readMaybe (T.unpack pos) :: Maybe Int)
                                     _ -> Nothing
+textEntryCNF :: TextEntry
+             -> D.Doc [D.Element] (TextEntryEvent, F.Focused TextEntry)
+textEntryCNF =  D.widgetHandler textEntryHandle textEntry
 
-textEntryC :: TextEntry -> D.Doc [D.Element] (TextEntryEvent, TextEntry)
-textEntryC = D.widgetHandler textEntryHandle textEntry
+textEntryC :: F.Focused TextEntry
+           -> D.Doc [D.Element] (TextEntryEvent, F.Focused TextEntry)
+textEntryC =  textEntryCNF . F.mostFocused

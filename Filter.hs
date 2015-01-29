@@ -11,6 +11,8 @@ import qualified Radio              as R
 import qualified Doc                as D
 import qualified Widget             as W
 import qualified Control.Lens       as L
+import qualified Focused            as F
+import qualified Control.Applicative as A
 
 data Void = Void !Void
 
@@ -33,13 +35,16 @@ data FilterEvent = FilterEvent T.TextEntryEvent
                  | SelectEvent (S.SelectEvent Int)
 $(L.makePrisms ''FilterEvent)
 
-filterB :: Filter -> D.DocF (FilterEvent, Filter) [D.Element]
+filterB :: F.Focused Filter -> D.DocF (FilterEvent, F.Focused Filter) [D.Element]
 filterB = eventMatches' _EditorEvent
-      (\_ a -> L.set (fAv.aAv.R.chosen) (L.view (fEd.T.tText) a) a)
+      (\_ a -> L.set (F.contentsS.fAv.aAv.R.chosen)
+                     (L.view (F.contents.fEd.T.tText) a) a)
           . eventMatches' _FilterEvent
-      (\_ a -> L.set fSe (selectFromAvailable (L.view fFi a) (L.view fAv a)) a)
+      (\_ a -> L.set (F.contentsS.fSe)
+                   (selectFromAvailable (L.view (F.contents.fFi) a)
+                                        (L.view (F.contents.fAv) a)) a)
           . eventMatches' (_SelectEvent.S.cEv)
-      (\i a -> L.over (fAv.aAv) (R.chooseIndex i) a)
+      (\i a -> L.over (F.contentsS.fAv.aAv) (R.chooseIndex i) a)
           . filterA
 
 eventMatches' l f = eventMatches l (\i (ev, a) -> (ev, f i a))
@@ -59,17 +64,29 @@ selectFromAvailable t = S.Select
                         . R.traverseRadio' R.enumerate R.enumerate
                         . L.view aAv
 
-filterA :: Filter -> D.DocF (FilterEvent, Filter) [D.Element]
-filterA (Filter a t tt s) = D.fmapResponse (L.over L._1
+filterA :: F.Focused Filter -> D.DocF (FilterEvent, F.Focused Filter) [D.Element]
+filterA ff = D.fmapResponse (L.over L._1
                                  (either (either absurd FilterEvent)
                                          (either EditorEvent SelectEvent ))) $
-                            D.fmapResponse (L.over L._2 (\((a', t'), (tt', s')) ->
+                            D.fmapNewState (fmap (\((a', t'), (tt', s')) ->
                                                           Filter a' t' tt' s')) $
                             fmap (\(((), e1), e2) -> e1 ++ e2) $
-                            (D.static
-                             `W.pair` T.textEntryC
-                             `W.pair` TS.textSelect)
-                            ((a, t), (tt, s))
+                            (pureF D.static
+                             `pairF` T.textEntryC
+                             `pairF` TS.textSelectF)
+                            (fmap (\(Filter a t tt s) -> ((a, t), (tt, s))) ff)
+
+pureF :: W.Widget d ev x -> W.Widget d ev (F.Focused x)
+pureF f = D.fmapNewState A.pure . f . F.mostFocused
+
+pairF :: W.Widget d1 ev1 (F.Focused x1)
+      -> W.Widget d2 ev2 (F.Focused x2)
+      -> W.Widget (d1, d2) (Either ev1 ev2) (F.Focused (x1, x2))
+pairF w1 w2 t = (D.fmapResponse (\(ev, (fl, fr)) ->
+                               case ev of
+                                 Left _ -> (ev, A.liftA2 (,) fl fr)
+                                 Right _ -> (ev, A.liftA2 (flip (,)) fr fl)))
+                (W.pair w1 w2 (fmap fst t, fmap snd t))
 
 filterMake :: Filter
 filterMake = Filter available

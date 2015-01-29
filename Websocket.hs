@@ -158,8 +158,8 @@ runServer pc = do
 
   loopGUI conn ((resetter `vert` TS.textSelect) `vert` F.filterB)
                ((((initialGui, B.buttonMake "Reset"),
-                 (T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))),
-                F.filterMake)
+                  (A.pure $ T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))),
+                A.pure F.filterMake)
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
