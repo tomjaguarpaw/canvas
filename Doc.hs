@@ -62,6 +62,9 @@ mapWidgetDoc = fmap . mapDoc
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
 fmapResponse f (Doc t) = Doc (L.over (L.mapped.L._2.L.mapped.L.mapped) f t)
 
+fmapNewState :: (a -> b) -> Doc d (e, a) -> Doc d (e, b)
+fmapNewState = fmapResponse . L.over L._2
+
 data GUICircle = GUICircle { gcName  :: T.Text
                            , gcColor :: T.Text } deriving Show
 

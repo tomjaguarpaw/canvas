@@ -120,12 +120,12 @@ radioA wx wo = R.traverseRadio (A.liftA2 (,))
               let radioXNew =   R.setFocusedX xNew radioXAOld
               in (Left (ev, a), R.stampX radioXNew))
                         (let (xOld, a) = R.focusedX radioXAOld
-                         in D.fmapResponse ((L.over L._2) (\xNew -> (xNew, a))) (wx xOld))
+                         in D.fmapNewState (\xNew -> (xNew, a)) (wx xOld))
         fo radioOAOld = D.fmapResponse (\(ev, oNew@(_, a)) ->
               let radioONew = R.setFocusedO oNew radioOAOld
               in (Right (ev, a), R.stampO radioONew))
                         (let (oOld, a) = R.focusedO radioOAOld
-                         in D.fmapResponse ((L.over L._2) (\xNew -> (xNew, a))) (wo oOld))
+                         in D.fmapNewState (\xNew -> (xNew, a)) (wo oOld))
 
 vert :: Widget [D.Element] ev x
      -> Widget [D.Element] ev' x'
