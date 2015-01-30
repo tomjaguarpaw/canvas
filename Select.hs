@@ -13,7 +13,8 @@ import qualified Data.List.NonEmpty as NEL
 import           Text.Read          (readMaybe)
 
 data SelectEvent a = Choice { _cId :: Int, _cEv :: a }
-data Select a = Select { _sRadio :: R.Radio (T.Text, a) (T.Text, a) } deriving Show
+data Select a = Select { _sRadio   :: R.Radio (T.Text, a) (T.Text, a)
+                       , _sFocused :: Bool } deriving Show
 $(L.makeLenses ''SelectEvent)
 $(L.makeLenses ''Select)
 
@@ -22,7 +23,8 @@ parseSelectEvent = \case "choose" -> Just Choice
                          _        -> Nothing
 
 selectMakeA :: NEL.NonEmpty (T.Text, a) -> Select a
-selectMakeA l = Select { _sRadio = R.chooseFirstNEL l }
+selectMakeA l = Select { _sRadio = R.chooseFirstNEL l
+                       , _sFocused = False }
 
 selectMake :: NEL.NonEmpty T.Text -> Select ()
 selectMake = selectMakeA . fmap u
@@ -30,9 +32,12 @@ selectMake = selectMakeA . fmap u
 
 selectHandle :: SelectEvent a -> Select a -> Select a
 selectHandle (Choice n _) = L.over sRadio (R.chooseIndex n)
+                            . L.set sFocused True
 
 guiSelect :: T.Text -> Select a -> D.GUISelect
-guiSelect n s = D.GUISelect n (R.fmapRadio fst fst (_sRadio s))
+guiSelect n s = D.GUISelect { D.gsName = n
+                            , D.gsRadio = R.fmapRadio fst fst (_sRadio s)
+                            , D.gsFocused = _sFocused s }
 
 -- TODO: duplication with circle
 select :: Select a -> D.Doc [D.Element] (SelectEvent a)

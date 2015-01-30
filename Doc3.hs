@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE Rank2Types #-}
 
 module Doc3 where
 
@@ -10,7 +11,6 @@ import qualified TextEntry          as T
 import qualified Select             as S
 import qualified Doc                as D
 import qualified Network.WebSockets as WS
-import qualified Data.List.NonEmpty as NEL
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
 import qualified Filter             as F
@@ -137,14 +137,20 @@ selectC se = (Doc
                  . DocP
                  . fmap (\(d, m) ->
                           (ReadMessage (\message -> case m message of
-                                           Nothing -> Don'tWantFocus se
-                                           Just seev -> Don'tNeedFocus
+                                           Nothing -> if L.view S.sFocused se
+                                                      then WantFocus se
+                                                           (L.set S.sFocused False se)
+                                                      else Don'tWantFocus se
+                                           Just seev -> NeedFocus
                                                         seev
-                                                        (S.selectHandle seev se)
+                                                        (S.selectHandle
+                                                         seev se)
                                        ), d))
                  . D.unDoc
                  . S.select) se
 
+-- Should be `Getting (First a) s a`
+handle :: L.Fold s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
 handle l f = handleEvent (\e b -> case e L.^? l of
                              Just m  -> f m b
                              Nothing -> b)

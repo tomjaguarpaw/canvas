@@ -57,7 +57,7 @@ perhaps f a = case f a of Nothing -> a
                           Just a' -> a'
 
 selectFromAvailable :: T.TextEntry -> Available -> S.Select Int
-selectFromAvailable t = S.Select
+selectFromAvailable t = flip S.Select False
                         . R.filterRadio (\(x, _) ->
                                           L.view T.tText t `DT.isPrefixOf` x)
                         . R.getEnumerate

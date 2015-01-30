@@ -76,8 +76,9 @@ data GUITextEntry = GUITextEntry { gtName     :: T.Text
                                  , gtFocused  :: Bool
                                  , gtPosition :: Int }
 
-data GUISelect = GUISelect { gsName  :: T.Text
-                           , gsRadio :: R.Radio T.Text T.Text }
+data GUISelect = GUISelect { gsName    :: T.Text
+                           , gsRadio   :: R.Radio T.Text T.Text
+                           , gsFocused :: Bool }
 
 static :: a -> DocF e ()
 static = const (pure ())
@@ -154,7 +155,10 @@ selectHtml s = (html, js) where
              ! AH.onchange (B.toValue ("choose_('" <> B.toValue (gsName s) <> "',this.selectedIndex)")) $ do
       mapM_ (H.option . H.toHtml) (entries s)
 
-  js = [ "document.getElementById(\"" <> theId <> "\").selectedIndex = "
+  js = (if gsFocused s
+        then [ "document.getElementById(\"" <> theId <> "\").focus()" ]
+        else []) <>
+       ["document.getElementById(\"" <> theId <> "\").selectedIndex = "
          <> (T.pack . show . R.chosenIndex . gsRadio) s ]
 
   theId = "id" <> gsName s
