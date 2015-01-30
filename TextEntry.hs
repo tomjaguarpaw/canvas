@@ -28,11 +28,14 @@ textEntryMake :: T.Text -> TextEntry
 textEntryMake t = TextEntry { _tText = t, _tFocused = False, _tPosition = 0 }
 
 textEntryHandle :: TextEntryEvent -> TextEntry -> F.Focused TextEntry
-textEntryHandle (Input n p) _ = F.Focused { F._mFocused  = Just (te True)
-                                          , F._defocused = te False }
-  where te f = TextEntry { _tText    = n
-                         , _tFocused = f
-                         , _tPosition = p }
+textEntryHandle i te = F.Focused { F._mFocused  = Just (teh True)
+                                 , F._defocused = teh False }
+  where teh f = textEntryHandle' f i te
+
+textEntryHandle' :: Bool -> TextEntryEvent -> TextEntry -> TextEntry
+textEntryHandle' f (Input n p) _ = TextEntry { _tText    = n
+                                             , _tFocused = f
+                                             , _tPosition = p }
 
 guiTextEntry :: T.Text -> TextEntry -> D.GUITextEntry
 guiTextEntry n b = D.GUITextEntry { D.gtName     = n

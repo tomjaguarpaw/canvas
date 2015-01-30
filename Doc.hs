@@ -25,7 +25,7 @@ import qualified Data.List.NonEmpty as NEL
 
 type Message = T.Text
 
-data DocF a d = Doc (US (d, Message -> Maybe a))
+data DocF a d = Doc { unDoc :: US (d, Message -> Maybe a) }
 
 type Doc d a = DocF a d
 
