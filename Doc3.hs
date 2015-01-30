@@ -126,6 +126,13 @@ selectC se = (Doc
                  . D.unDoc
                  . S.select) se
 
+textSelectC :: (T.TextEntry, S.Select a)
+            -> Doc (Either (T.TextEntryEvent) (S.SelectEvent a))
+                   (T.TextEntry, S.Select a)
+                   [D.Element]
+textSelectC = mapDoc (uncurry (++)) . (textEntryC `pairE` selectC)
+
+
 two :: (T.TextEntry, T.TextEntry)
     -> Doc T.TextEntryEvent (T.TextEntry, T.TextEntry) [D.Element]
 two (t1, t2) = mapDoc (uncurry (++))
