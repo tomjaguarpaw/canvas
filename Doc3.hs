@@ -11,6 +11,8 @@ import qualified Select             as S
 import qualified Doc                as D
 import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
+import qualified Radio              as R
+import qualified Data.Text.Lazy     as DT
 
 data DocP f b d = DocP (US (f b, d))
 
@@ -42,6 +44,16 @@ pairE w1 w2 (b1, b2) = mapEvent Left (w1 b1) `pair` mapEvent Right (w2 b2)
 
 mapDoc :: (d -> d') -> Doc a b d -> Doc a b d'
 mapDoc f (Doc dp) = Doc (mapDocP f dp)
+
+handleEvent :: (e -> b -> b) -> Doc e b d -> Doc e b d
+handleEvent h (Doc (DocP us)) = Doc (DocP (f us))
+  where f = L.over (L.mapped.L._1.answer) (handleEventFocus h)
+
+handleEventFocus :: (e -> b -> b) -> Focus e b -> Focus e b
+handleEventFocus h = \case NeedFocus e b      -> NeedFocus e (h e b)
+                           Don'tNeedFocus e b -> Don'tNeedFocus e (h e b)
+                           WantFocus b b'     -> WantFocus b b'
+                           Don'tWantFocus b   -> Don'tWantFocus b
 
 data ReadMessage f a = ReadMessage (D.Message -> f a)
 
@@ -130,7 +142,22 @@ textSelectC :: (T.TextEntry, S.Select a)
             -> Doc (Either (T.TextEntryEvent) (S.SelectEvent a))
                    (T.TextEntry, S.Select a)
                    [D.Element]
-textSelectC = mapDoc (uncurry (++)) . (textEntryC `pairE` selectC)
+textSelectC = handleEvent (\e b -> case e of
+                              Left _  -> L.set (L._2.S.sRadio.R.chosen.L._1)
+                                               (L.view (L._1.T.tText) b)
+                                               b
+                              Right _ -> b)
+              . handleEvent (\e b -> case e of
+                                Right _  -> let newText =
+                                                 L.view (L._2.S.sRadio.R.chosen.L._1) b
+                                                newLength =
+                                                  (fromIntegral . DT.length) newText
+                                           in (L.set (L._1.T.tText) newText
+                                               . L.set (L._1.T.tPosition) newLength)
+                                              b
+                                Left _ -> b)
+              . mapDoc (uncurry (++))
+              . (textEntryC `pairE` selectC)
 
 
 two :: (T.TextEntry, T.TextEntry)
@@ -160,10 +187,11 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = ( (T.textEntryMake "foo", T.textEntryMake "bar")
-                   , (S.selectMake ("foo" NEL.:| ["bar", "baz"])))
+  let initialGui = (( (T.textEntryMake "foo", T.textEntryMake "bar")
+                   , (T.textEntryMake "editor",
+                      S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
 
-      gui = mapDoc (uncurry (++)) . (two `pairE` selectC)
+      gui = mapDoc (uncurry (++)) . (two `pairE` textSelectC)
 
       handler d = do
         WS.sendTextData conn (D.renderElements' d)
