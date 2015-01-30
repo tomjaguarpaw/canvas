@@ -1,3 +1,4 @@
+{-
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE LambdaCase #-}
@@ -162,3 +163,7 @@ runServer pc = do
 
 main :: IO ()
 main = WS.runServer "0.0.0.0" 9998 runServer
+-}
+
+main :: IO ()
+main = return ()
