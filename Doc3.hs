@@ -13,6 +13,7 @@ import qualified Network.WebSockets as WS
 import qualified Data.List.NonEmpty as NEL
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
+import qualified Filter             as F
 
 data DocP f b d = DocP (US (f b, d))
 
@@ -26,6 +27,9 @@ mapResponseP f (DocP u) = DocP (L.over (L.mapped.L._1.L.mapped) f u)
 
 mapEvent :: (e -> e') -> Doc e b d -> Doc e' b d
 mapEvent f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.answer.attached) f us))
+
+mapBehaviour :: (b -> b') -> Doc e b d -> Doc e b' d
+mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))
 
 pairP :: A.Applicative f => DocP f b d -> DocP f b' d' -> DocP f (b, b') (d, d')
 pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
@@ -44,6 +48,9 @@ pairE w1 w2 (b1, b2) = mapEvent Left (w1 b1) `pair` mapEvent Right (w2 b2)
 
 mapDoc :: (d -> d') -> Doc a b d -> Doc a b d'
 mapDoc f (Doc dp) = Doc (mapDocP f dp)
+
+static :: b -> Doc F.Void b ()
+static b = Doc (DocP (A.pure (ReadMessage (A.pure (Don'tWantFocus b)), ())))
 
 handleEvent :: (e -> b -> b) -> Doc e b d -> Doc e b d
 handleEvent h (Doc (DocP us)) = Doc (DocP (f us))
@@ -160,6 +167,30 @@ textSelectC = handle L._Left (\_ b -> L.set (L._2.S.sRadio.R.chosen.L._1)
               . (textEntryC `pairE` selectC)
 
 
+filterC :: F.Filter -> Doc F.FilterEvent F.Filter [D.Element]
+filterC = handle F._EditorEvent
+          (\_ a -> L.set (F.fAv.F.aAv.R.chosen)
+                         (L.view (F.fEd.T.tText) a) a)
+          . handle F._FilterEvent
+          (\_ a -> L.set F.fSe
+                         (F.selectFromAvailable (L.view F.fFi a)
+                                                (L.view F.fAv a)) a)
+          . handle (F._SelectEvent.S.cEv)
+          (\i a -> L.over (F.fAv.F.aAv) (R.chooseIndex i) a)
+
+          . filterA
+
+filterA :: F.Filter -> Doc F.FilterEvent F.Filter [D.Element]
+filterA = mapBehaviour (\((a, t), (tt, s)) -> F.Filter a t tt s)
+          . mapEvent (either (either F.absurd F.FilterEvent)
+                           (either F.EditorEvent F.SelectEvent))
+          . mapDoc (\(((), d1), d2) -> d1 ++ d2)
+          . (static
+           `pairE` textEntryC
+           `pairE` textSelectC)
+          . (\(F.Filter a t tt s) -> ((a, t), (tt, s)))
+
+
 two :: (T.TextEntry, T.TextEntry)
     -> Doc T.TextEntryEvent (T.TextEntry, T.TextEntry) [D.Element]
 two (t1, t2) = mapDoc (uncurry (++))
@@ -187,11 +218,9 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = (( (T.textEntryMake "foo", T.textEntryMake "bar")
-                   , (T.textEntryMake "editor",
-                      S.selectMake ("foo" NEL.:| ["bar", "baz"]))))
+  let initialGui = F.filterMake
 
-      gui = mapDoc (uncurry (++)) . (two `pairE` textSelectC)
+      gui = filterC
 
       handler d = do
         WS.sendTextData conn (D.renderElements' d)
