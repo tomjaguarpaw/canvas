@@ -138,24 +138,24 @@ selectC se = (Doc
                  . D.unDoc
                  . S.select) se
 
+handle l f = handleEvent (\e b -> case e L.^? l of
+                             Just m  -> f m b
+                             Nothing -> b)
+
 textSelectC :: (T.TextEntry, S.Select a)
             -> Doc (Either (T.TextEntryEvent) (S.SelectEvent a))
                    (T.TextEntry, S.Select a)
                    [D.Element]
-textSelectC = handleEvent (\e b -> case e of
-                              Left _  -> L.set (L._2.S.sRadio.R.chosen.L._1)
-                                               (L.view (L._1.T.tText) b)
-                                               b
-                              Right _ -> b)
-              . handleEvent (\e b -> case e of
-                                Right _  -> let newText =
-                                                 L.view (L._2.S.sRadio.R.chosen.L._1) b
-                                                newLength =
-                                                  (fromIntegral . DT.length) newText
-                                           in (L.set (L._1.T.tText) newText
-                                               . L.set (L._1.T.tPosition) newLength)
-                                              b
-                                Left _ -> b)
+textSelectC = handle L._Left (\_ b -> L.set (L._2.S.sRadio.R.chosen.L._1)
+                                            (L.view (L._1.T.tText) b)
+                                            b)
+              . handle L._Right (\_ b -> let newText =
+                                               L.view (L._2.S.sRadio.R.chosen.L._1) b
+                                             newLength =
+                                               (fromIntegral . DT.length) newText
+                                         in (L.set (L._1.T.tText) newText
+                                             . L.set (L._1.T.tPosition) newLength)
+                                            b)
               . mapDoc (uncurry (++))
               . (textEntryC `pairE` selectC)
 
