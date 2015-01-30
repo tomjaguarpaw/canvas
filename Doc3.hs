@@ -61,10 +61,10 @@ data Focus a b = NeedFocus a b
                | Don'tWantFocus b
 
 attached :: L.Traversal (Focus a b) (Focus a' b) a a'
-attached f = \case NeedFocus a b -> fmap (\a' -> NeedFocus a' b) (f a)
+attached f = \case NeedFocus a b      -> fmap (\a' -> NeedFocus a' b) (f a)
                    Don'tNeedFocus a b -> fmap (\a' -> Don'tNeedFocus a' b) (f a)
-                   WantFocus b b' -> A.pure (WantFocus b b')
-                   Don'tWantFocus b -> A.pure (Don'tWantFocus b)
+                   WantFocus b b'     -> A.pure (WantFocus b b')
+                   Don'tWantFocus b   -> A.pure (Don'tWantFocus b)
 
 instance Functor (Focus a) where
   fmap f (NeedFocus a b) = NeedFocus a (f b)
