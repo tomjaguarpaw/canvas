@@ -4,16 +4,18 @@ import Doc                          (US)
 import qualified Control.Lens       as L
 import qualified Control.Applicative as A
 
-data Doc f b d = Doc (US (f b, d))
+data DocP f b d = DocP (US (f b, d))
 
-mapDoc :: (d -> d') -> Doc f b d -> Doc f b d'
-mapDoc f (Doc u) = Doc (L.over (L.mapped.L._2) f u)
+data Doc a b d = Doc (DocP (Focus a) b d)
 
-mapResponse :: Functor f => (b -> b') -> Doc f b d -> Doc f b' d
-mapResponse f (Doc u) = Doc (L.over (L.mapped.L._1.L.mapped) f u)
+mapDoc :: (d -> d') -> DocP f b d -> DocP f b d'
+mapDoc f (DocP u) = DocP (L.over (L.mapped.L._2) f u)
 
-pair :: A.Applicative f => Doc f b d -> Doc f b' d' -> Doc f (b, b') (d, d')
-pair (Doc u) (Doc u') = Doc (A.liftA2 pair' u u')
+mapResponse :: Functor f => (b -> b') -> DocP f b d -> DocP f b' d
+mapResponse f (DocP u) = DocP (L.over (L.mapped.L._1.L.mapped) f u)
+
+pair :: A.Applicative f => DocP f b d -> DocP f b' d' -> DocP f (b, b') (d, d')
+pair (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
   where pair' (fb, d) (fb', d') = (A.liftA2 (,) fb fb', (d, d'))
 
 data Focus a b = NeedFocus a b
