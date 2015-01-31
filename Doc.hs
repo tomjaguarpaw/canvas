@@ -83,9 +83,6 @@ data GUISelect = GUISelect { gsName    :: T.Text
 static :: a -> DocF e ()
 static = const (pure ())
 
-vert :: Doc [Element] a -> Doc [Element] a -> Doc [Element] a
-vert = liftA2 (++)
-
 firstJust :: Maybe a -> Maybe a -> Maybe a
 firstJust (Just a) _ = Just a
 firstJust Nothing (Just b) = Just b

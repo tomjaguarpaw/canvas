@@ -2,16 +2,8 @@
 
 module Focus where
 
-import Doc                          (US)
 import qualified Control.Lens       as L
 import qualified Control.Applicative as A
-import qualified TextEntry          as T
-import qualified Select             as S
-import qualified Doc                as D
-import qualified Network.WebSockets as WS
-import qualified Radio              as R
-import qualified Data.Text.Lazy     as DT
-import qualified Filter             as F
 
 data Focus a b = NeedFocus a b
                | Don'tNeedFocus a b
