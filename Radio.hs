@@ -102,16 +102,16 @@ stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)
 stampO (After os o rs)  = (os ++ [o]) `prependO` rs
 
-traverseRadio' :: A.Applicative f
-               => (x -> f x')
-               -> (o -> f o')
-               -> Radio x o
-               -> f (Radio x' o')
-traverseRadio' fx fo = \case
+traverseRadio :: A.Applicative f
+              => (x -> f x')
+              -> (o -> f o')
+              -> Radio x o
+              -> f (Radio x' o')
+traverseRadio fx fo = \case
   Chosen x os -> Chosen A.<$> fx x
                         A.<*> L.traverse fo os
   Unchosen o rs -> Unchosen A.<$> fo o
-                            A.<*> traverseRadio' fx fo rs
+                            A.<*> traverseRadio fx fo rs
 
 over2 :: ((a -> Id.Identity a')
        -> (b -> Id.Identity b')
@@ -128,17 +128,17 @@ enumerate a = do
 getEnumerate :: St.State Int a -> a
 getEnumerate = flip St.evalState 0
 
-traverseRadio :: Functor f =>
+sequenceRadio :: Functor f =>
                  (forall a b. f a -> f b -> f (a, b))
               -> Radio (f x) (f o)
               -> f (Radio x o)
-traverseRadio (***) = fmap fromRadio' . cases . toRadio'
+sequenceRadio (***) = fmap fromRadio' . cases . toRadio'
   where cases = \case
           Chosen1'  fx     -> fmap (\x -> Chosen1' x) fx
           Chosen'   fx fys -> fmap (\(x, ys) -> Chosen' x ys)
                                    (fx *** traverseNEL (***) fys)
           Unchosen' fo fas -> fmap (\(o, as) -> Unchosen' o as)
-                                   (fo *** traverseRadio (***) fas)
+                                   (fo *** sequenceRadio (***) fas)
 
 duplicateNEL :: NEL.NonEmpty a -> NEL.NonEmpty (NELZ a)
 duplicateNEL = ne >>> \case
@@ -181,7 +181,7 @@ singleton :: a -> NonEmpty a
 singleton a = a :| []
 
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
-fmapRadio = over2 traverseRadio'
+fmapRadio = over2 traverseRadio
 
 radioToNEL :: Radio a a -> NEL.NonEmpty a
 radioToNEL (Chosen x xs) = x :| xs
@@ -229,12 +229,12 @@ traverseRadioO :: A.Applicative f
                => (x -> f x') -> (o -> f o') -> RadioO x o -> f (RadioO x' o')
 
 traverseRadioO fx fo = \case
-  Before cs o os -> Before A.<$> traverseRadio' fx fo cs
+  Before cs o os -> Before A.<$> traverseRadio fx fo cs
                            A.<*> fo o
                            A.<*> L.traverse fo os
   After os o rs  -> After  A.<$> L.traverse fo os
                            A.<*> fo o
-                           A.<*> traverseRadio' fx fo rs
+                           A.<*> traverseRadio fx fo rs
 
 fmapRadioX :: (x -> x') -> (o -> o') -> RadioX x o -> RadioX x' o'
 fmapRadioX = over2 traverseRadioX

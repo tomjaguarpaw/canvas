@@ -43,7 +43,7 @@ elementRadio = H.elementOfCircles . canvasRadio
 radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
        -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
        -> Widget (Radio d1 d2) ev' (Radio x o)
-radioW cx co = R.traverseRadio (A.liftA2 (,))
+radioW cx co = R.sequenceRadio (A.liftA2 (,))
                . extendRadio fx fo
   where behaviourX ev radioXOld radioXNew =
           Behaviours { oldComponent = R.focusedX radioXOld

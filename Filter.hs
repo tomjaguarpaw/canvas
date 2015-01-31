@@ -34,7 +34,7 @@ selectFromAvailable t = flip S.Select False
                         . R.filterRadio (\(x, _) ->
                                           L.view T.tText t `DT.isPrefixOf` x)
                         . R.getEnumerate
-                        . R.traverseRadio' R.enumerate R.enumerate
+                        . R.traverseRadio R.enumerate R.enumerate
                         . L.view aAv
 
 filterMake :: Filter
