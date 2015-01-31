@@ -28,10 +28,10 @@ data Component d ev ev' xa xc x = Component { widget  :: Widget d ev x
 tupleOfResponse :: Response ev xa -> (ev, xa)
 tupleOfResponse r = (responseEvent r, responseWhole r)
 
-vertW' :: Component d1 e1 ev' (x, y) (x, y) x
+pair :: Component d1 e1 ev' (x, y) (x, y) x
        -> Component d2 e2 ev' (x, y) (x, y) y
        -> Widget (d1, d2) ev' (x, y)
-vertW' cx cy = supertraverse fx fy
+pair cx cy = supertraverse fx fy
   where behaviourX ev told tnew = Behaviours {
             oldComponent = fst told
           , oldContext   = told
@@ -66,14 +66,3 @@ vertW' cx cy = supertraverse fx fy
                   (widget cy (snd told))
 
         supertraverse gx gy (x, y) = A.liftA2 (,) (gx (x, y)) (gy (x, y))
-
-pair :: Widget d1 ev1 x1
-     -> Widget d2 ev2 x2
-     -> Widget (d1, d2) (Either ev1 ev2) (x1, x2)
-pair w1 w2 = vertW'
-  Component { widget = w1
-            , handler = \b -> Response { responseEvent = Left (event b)
-                                       , responseWhole = newWhole b } }
-  Component { widget = w2
-            , handler = \b -> Response { responseEvent = Right (event b)
-                                       , responseWhole = newWhole b } }

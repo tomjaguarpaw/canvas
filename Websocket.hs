@@ -20,7 +20,7 @@ import           Circle             (CircleEvent(MouseClick),
 import qualified Control.Lens       as L
 import qualified Control.Applicative as A
 import           Widget             (Widget, Behaviours(..), Response(..),
-                                     Component(..), tupleOfResponse, vertW')
+                                     Component(..), tupleOfResponse, pair)
 
 canvasRadio :: Widget [H.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
@@ -79,7 +79,7 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
                                       (widget co (R.focusedO radioOOld))
 
 resetter :: Widget [H.Element] () (Radio Selected Unselected, B.Button)
-resetter = D.mapWidgetDoc (uncurry (++)) $ vertW'
+resetter = D.mapWidgetDoc (uncurry (++)) $ pair
   Component { widget  = elementRadio
             , handler = \b -> Response { responseEvent = ()
                                        , responseWhole = newWhole b } }
