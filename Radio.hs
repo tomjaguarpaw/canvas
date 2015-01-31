@@ -216,14 +216,23 @@ traverseRadioX fx fo (At os x os') = At A.<$> L.traverse fo os
                                         A.<*> fx x
                                         A.<*> L.traverse fo os'
 
+traverseRadioO :: A.Applicative f
+               => (x -> f x') -> (o -> f o') -> RadioO x o -> f (RadioO x' o')
+
+traverseRadioO fx fo = \case
+  Before cs o os -> Before A.<$> traverseRadio' fx fo cs
+                           A.<*> fo o
+                           A.<*> L.traverse fo os
+  After os o rs  -> After  A.<$> L.traverse fo os
+                           A.<*> fo o
+                           A.<*> traverseRadio' fx fo rs
+
+
 fmapRadioX :: (x -> x') -> (o -> o') -> RadioX x o -> RadioX x' o'
-fmapRadioX fx fo (At os x os') = At (fmap fo os) (fx x) (fmap fo os')
+fmapRadioX = over2 traverseRadioX
 
 fmapRadioO :: (x -> x') -> (o -> o') -> RadioO x o -> RadioO x' o'
-fmapRadioO fx fo = \case (Before cs o os) -> Before (fmapRadio fx fo cs)
-                                                    (fo o) (fmap fo os)
-                         (After os o rs)  -> After (fmap fo os) (fo o)
-                                                   (fmapRadio fx fo rs)
+fmapRadioO = over2 traverseRadioO
 
 filterRadio :: (o -> Bool) -> Radio x o -> Radio x o
 filterRadio f = \case Chosen x os   -> Chosen x (filter f os)
