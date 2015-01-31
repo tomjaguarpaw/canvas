@@ -172,8 +172,7 @@ singleton :: a -> NonEmpty a
 singleton a = a :| []
 
 fmapRadio :: (x -> x') -> (o -> o') -> Radio x o -> Radio x' o'
-fmapRadio f g (Chosen x os) = Chosen (f x) (fmap g os)
-fmapRadio f g (Unchosen o rs) = Unchosen (g o) (fmapRadio f g rs)
+fmapRadio = over2 traverseRadio'
 
 radioToNEL :: Radio a a -> NEL.NonEmpty a
 radioToNEL (Chosen x xs) = x :| xs
