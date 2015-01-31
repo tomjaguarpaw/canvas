@@ -210,6 +210,12 @@ chosen :: L.Lens (Radio x o) (Radio x' o) x x'
 chosen f (Chosen x os) = fmap (\x' -> Chosen x' os) (f x)
 chosen f (Unchosen o rs) = fmap (Unchosen o) (chosen f rs)
 
+traverseRadioX :: A.Applicative f
+               => (x -> f x') -> (o -> f o') -> RadioX x o -> f (RadioX x' o')
+traverseRadioX fx fo (At os x os') = At A.<$> L.traverse fo os
+                                        A.<*> fx x
+                                        A.<*> L.traverse fo os'
+
 fmapRadioX :: (x -> x') -> (o -> o') -> RadioX x o -> RadioX x' o'
 fmapRadioX fx fo (At os x os') = At (fmap fo os) (fx x) (fmap fo os')
 
