@@ -66,12 +66,18 @@ prependO :: [o] -> Radio x o -> Radio x o
 prependO [] rs     = rs
 prependO (o:os) rs = Unchosen o (prependO os rs)
 
+focusedXL :: L.Lens (RadioX x o) (RadioX x' o) x x'
+focusedXL f (At l x r) = fmap (\x' -> At l x' r) (f x)
+
 focusedX :: RadioX x o -> x
-focusedX (At _ x _) = x
+focusedX = L.view focusedXL
+
+focusedOL :: L.Lens' (RadioO x o) o
+focusedOL f = \case Before l o r -> fmap (\o' -> Before l o' r) (f o)
+                    After  l o r -> fmap (\o' -> After  l o' r) (f o)
 
 focusedO :: RadioO x o -> o
-focusedO (Before _ o _) = o
-focusedO (After _ o _) = o
+focusedO = L.view focusedOL
 
 unselect :: (x -> o) -> Radio x o -> [o]
 unselect u = NEL.toList . radioToNEL . fmapRadio u id
@@ -81,14 +87,13 @@ choose x u = \case Before rs _ os -> stampX (At (unselect u rs) x os)
                    After  os _ rs -> stampX (At os x (unselect u rs))
 
 setFocusedX :: x -> RadioX x o -> RadioX x o
-setFocusedX x (At l _ r) = At l x r
+setFocusedX = L.set focusedXL
 
 stampFocusedX :: x -> RadioX x o -> Radio x o
 stampFocusedX x = stampX . setFocusedX x
 
 setFocusedO :: o -> RadioO x o -> RadioO x o
-setFocusedO o (Before l _ r) = Before l o r
-setFocusedO o (After  l _ r) = After  l o r
+setFocusedO = L.set focusedOL
 
 stampFocusedO :: o -> RadioO x o -> Radio x o
 stampFocusedO o = stampO . setFocusedO o
