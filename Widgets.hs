@@ -10,7 +10,7 @@ import qualified Data.Text.Lazy     as DT
 import qualified Filter             as F
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
-import           Doc3               (Doc(Doc), handle, pair, pairE, mapDoc,
+import           Doc3               (Doc(Doc), handle, pairE, mapDoc,
                                      static, mapBehaviour, mapEvent,
                                      ReadMessage(ReadMessage), DocP(DocP))
 
@@ -89,9 +89,3 @@ filterA = mapBehaviour (\((a, t), (tt, s)) -> F.Filter a t tt s)
            `pairE` textEntryC
            `pairE` textSelectC)
           . (\(F.Filter a t tt s) -> ((a, t), (tt, s)))
-
-
-two :: (T.TextEntry, T.TextEntry)
-    -> Doc T.TextEntryEvent (T.TextEntry, T.TextEntry) [H.Element]
-two (t1, t2) = mapDoc (uncurry (++))
-               (pair (textEntryC t1) (textEntryC t2))
