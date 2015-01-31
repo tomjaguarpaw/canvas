@@ -10,8 +10,6 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
 import qualified Radio              as R
 import qualified Doc                as D
 import qualified Button             as B
-import qualified TextEntry          as T
-import qualified Select             as S
 import           Doc                (handleMessage)
 import           Circle             (CircleEvent(MouseClick),
                                      Selected, Unselected,
@@ -22,8 +20,6 @@ import qualified Control.Lens       as L
 import qualified Control.Applicative as A
 import           Widget             (Widget, Behaviours(..), Response(..),
                                      Component(..), tupleOfResponse, vertW')
-import qualified TextSelect         as TS
-import qualified Filter             as F
 
 canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
@@ -156,10 +152,7 @@ runServer pc = do
   let initialGui = Chosen selectedMake
                           [ unselectedMake, unselectedMake, unselectedMake ]
 
-  loopGUI conn ((resetter `vert` TS.textSelect) `vert` F.filterB)
-               ((((initialGui, B.buttonMake "Reset"),
-                  (A.pure $ T.textEntryMake "foo", S.selectMake ("foo" NEL.:| ["bar", "baz"])))),
-                A.pure F.filterMake)
+  loopGUI conn resetter (initialGui, B.buttonMake "Reset")
 
 loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
