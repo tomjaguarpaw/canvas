@@ -27,10 +27,10 @@ parseTextEntryEvent = \case "input" -> Just Input
 textEntryMake :: T.Text -> TextEntry
 textEntryMake t = TextEntry { _tText = t, _tFocused = False, _tPosition = 0 }
 
-textEntryHandle' :: Bool -> TextEntryEvent -> TextEntry -> TextEntry
-textEntryHandle' f (Input n p) _ = TextEntry { _tText    = n
-                                             , _tFocused = f
-                                             , _tPosition = p }
+textEntryHandle :: TextEntryEvent -> TextEntry -> TextEntry
+textEntryHandle (Input n p) _ = TextEntry { _tText    = n
+                                          , _tFocused = True
+                                          , _tPosition = p }
 
 guiTextEntry :: T.Text -> TextEntry -> H.GUITextEntry
 guiTextEntry n b = H.GUITextEntry { H.gtName     = n

@@ -25,7 +25,7 @@ textEntryC te = (Doc
                                                       else Don'tWantFocus te
                                            Just teev -> NeedFocus
                                                         teev
-                                                        (T.textEntryHandle' True
+                                                        (T.textEntryHandle
                                                          teev te)
                                        ), d))
                  . D.unDoc
