@@ -171,13 +171,7 @@ run' f fd s = do
   let Doc (DocP u) = fd s
       (ReadMessage mab, d) = D.runUS u
   message <- f d
-  return $ mostFocused (mab message)
-
-mostFocused :: Focus a b -> b
-mostFocused x = case x of NeedFocus _ s'      -> s'
-                          Don'tNeedFocus _ s' -> s'
-                          WantFocus s' _      -> s'
-                          Don'tWantFocus s'   -> s'
+  (return . Focus.mostFocused . mab) message
 
 run :: (d -> IO D.Message) -> (s -> Doc e s d) -> s -> IO void
 run f fd s = do

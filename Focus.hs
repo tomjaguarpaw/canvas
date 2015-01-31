@@ -18,12 +18,6 @@ data Focus a b = NeedFocus a b
                | WantFocus b b
                | Don'tWantFocus b
 
-attached :: L.Traversal (Focus a b) (Focus a' b) a a'
-attached f = \case NeedFocus a b      -> fmap (\a' -> NeedFocus a' b) (f a)
-                   Don'tNeedFocus a b -> fmap (\a' -> Don'tNeedFocus a' b) (f a)
-                   WantFocus b b'     -> A.pure (WantFocus b b')
-                   Don'tWantFocus b   -> A.pure (Don'tWantFocus b)
-
 instance Functor (Focus a) where
   fmap f (NeedFocus a b) = NeedFocus a (f b)
   fmap f (Don'tNeedFocus a b) = Don'tNeedFocus a (f b)
@@ -52,3 +46,15 @@ instance A.Applicative (Focus a) where
   Don'tWantFocus f <*> Don'tNeedFocus a x = Don'tNeedFocus a (f x)
   Don'tWantFocus f <*> WantFocus x x' = WantFocus (f x) (f x')
   Don'tWantFocus f <*> Don'tWantFocus x = Don'tWantFocus (f x)
+
+attached :: L.Traversal (Focus a b) (Focus a' b) a a'
+attached f = \case NeedFocus a b      -> fmap (\a' -> NeedFocus a' b) (f a)
+                   Don'tNeedFocus a b -> fmap (\a' -> Don'tNeedFocus a' b) (f a)
+                   WantFocus b b'     -> A.pure (WantFocus b b')
+                   Don'tWantFocus b   -> A.pure (Don'tWantFocus b)
+
+mostFocused :: Focus a b -> b
+mostFocused x = case x of NeedFocus _ s'      -> s'
+                          Don'tNeedFocus _ s' -> s'
+                          WantFocus s' _      -> s'
+                          Don'tWantFocus s'   -> s'
