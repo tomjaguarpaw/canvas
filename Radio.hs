@@ -107,7 +107,11 @@ traverseRadio' :: A.Applicative f
                -> (o -> f o')
                -> Radio x o
                -> f (Radio x' o')
-traverseRadio' fx fo = traverseRadio (A.liftA2 (,)) . fmapRadio fx fo
+traverseRadio' fx fo = \case
+  Chosen x os -> Chosen A.<$> fx x
+                        A.<*> L.traverse fo os
+  Unchosen o rs -> Unchosen A.<$> fo o
+                            A.<*> traverseRadio' fx fo rs
 
 over2 :: ((a -> Id.Identity a')
        -> (b -> Id.Identity b')
