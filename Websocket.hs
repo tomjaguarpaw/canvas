@@ -93,10 +93,11 @@ runServer :: WS.PendingConnection -> IO ()
 runServer pc = do
   conn <- WS.acceptRequest pc
 
-  let initialGui = Chosen selectedMake
-                          [ unselectedMake, unselectedMake, unselectedMake ]
+  let initialGui = (Chosen selectedMake
+                           [ unselectedMake, unselectedMake, unselectedMake ],
+                    B.buttonMake "Reset")
 
-  loopGUI conn resetter (initialGui, B.buttonMake "Reset")
+  loopGUI conn resetter initialGui
 
 loopGUI :: WS.Connection -> (a -> D.Doc [H.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
