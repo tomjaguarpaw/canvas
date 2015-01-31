@@ -14,6 +14,9 @@ import qualified Network.WebSockets as WS
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
 import qualified Filter             as F
+import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
+                                           WantFocus, Don'tWantFocus))
+import qualified Focus              as Focus
 
 data DocP f b d = DocP (US (f b, d))
 
@@ -26,7 +29,8 @@ mapResponseP :: Functor f => (b -> b') -> DocP f b d -> DocP f b' d
 mapResponseP f (DocP u) = DocP (L.over (L.mapped.L._1.L.mapped) f u)
 
 mapEvent :: (e -> e') -> Doc e b d -> Doc e' b d
-mapEvent f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.answer.attached) f us))
+mapEvent f (Doc (DocP us)) = Doc (DocP (L.over l f us))
+  where l = (L.mapped.L._1.answer.Focus.attached)
 
 mapBehaviour :: (b -> b') -> Doc e b d -> Doc e b' d
 mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))
@@ -73,46 +77,6 @@ instance Functor f => Functor (ReadMessage f) where
 instance A.Applicative f => A.Applicative (ReadMessage f) where
   pure = ReadMessage . A.pure . A.pure
   ReadMessage ff <*> ReadMessage fx = ReadMessage (A.liftA2 (A.<*>) ff fx)
-
-data Focus a b = NeedFocus a b
-               | Don'tNeedFocus a b
-               | WantFocus b b
-               | Don'tWantFocus b
-
-attached :: L.Traversal (Focus a b) (Focus a' b) a a'
-attached f = \case NeedFocus a b      -> fmap (\a' -> NeedFocus a' b) (f a)
-                   Don'tNeedFocus a b -> fmap (\a' -> Don'tNeedFocus a' b) (f a)
-                   WantFocus b b'     -> A.pure (WantFocus b b')
-                   Don'tWantFocus b   -> A.pure (Don'tWantFocus b)
-
-instance Functor (Focus a) where
-  fmap f (NeedFocus a b) = NeedFocus a (f b)
-  fmap f (Don'tNeedFocus a b) = Don'tNeedFocus a (f b)
-  fmap f (WantFocus b b') = WantFocus (f b) (f b')
-  fmap f (Don'tWantFocus b) = Don'tWantFocus (f b)
-
-instance A.Applicative (Focus a) where
-  pure = Don'tWantFocus
-  -- These are probably errors
-  NeedFocus a f <*> NeedFocus _ x = NeedFocus a (f x)
-  NeedFocus a f <*> Don'tNeedFocus _ x = NeedFocus a (f x)
-  Don'tNeedFocus a f <*> NeedFocus _ x = NeedFocus a (f x)
-  Don'tNeedFocus a f <*> Don'tNeedFocus _ x = Don'tNeedFocus a (f x)
-  WantFocus f f' <*> WantFocus _ x = WantFocus (f x) (f' x)
-  -- These are fine
-  NeedFocus a f <*> WantFocus _ x = NeedFocus a (f x)
-  NeedFocus a f <*> Don'tWantFocus x = NeedFocus a (f x)
-  Don'tNeedFocus a f <*> WantFocus _ x = NeedFocus a (f x)
-  Don'tNeedFocus a f <*> Don'tWantFocus x = Don'tNeedFocus a (f x)
-
-  WantFocus _ f <*> NeedFocus a x = NeedFocus a (f x)
-  WantFocus f _ <*> Don'tNeedFocus a x = NeedFocus a (f x)
-  WantFocus f f' <*> Don'tWantFocus x = WantFocus (f x) (f' x)
-
-  Don'tWantFocus f <*> NeedFocus a x = NeedFocus a (f x)
-  Don'tWantFocus f <*> Don'tNeedFocus a x = Don'tNeedFocus a (f x)
-  Don'tWantFocus f <*> WantFocus x x' = WantFocus (f x) (f x')
-  Don'tWantFocus f <*> Don'tWantFocus x = Don'tWantFocus (f x)
 
 textEntryC :: T.TextEntry -> Doc T.TextEntryEvent T.TextEntry [D.Element]
 textEntryC te = (Doc
