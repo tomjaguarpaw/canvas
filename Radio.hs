@@ -206,7 +206,7 @@ chooseIndex n (Chosen a as) = case NEL.nonEmpty as
                                  Just bs -> Unchosen a (chooseIndexNEL (n-1) bs)
 chooseIndex n (Unchosen a as) = Unchosen a (chooseIndex (n-1) as)
 
-chosen :: Functor f => L.LensLike' f (Radio x o) x
+chosen :: L.Lens (Radio x o) (Radio x' o) x x'
 chosen f (Chosen x os) = fmap (\x' -> Chosen x' os) (f x)
 chosen f (Unchosen o rs) = fmap (Unchosen o) (chosen f rs)
 
