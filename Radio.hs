@@ -80,11 +80,8 @@ choose :: x -> (x -> o) -> RadioO x o -> Radio x o
 choose x u = \case Before rs _ os -> stampX (At (unselect u rs) x os)
                    After  os _ rs -> stampX (At os x (unselect u rs))
 
-setFocusedX :: x -> RadioX x o -> RadioX x o
-setFocusedX = L.set focusedX
-
 stampFocusedX :: x -> RadioX x o -> Radio x o
-stampFocusedX x = stampX . setFocusedX x
+stampFocusedX x = stampX . L.set focusedX x
 
 stampFocusedO :: o -> RadioO x o -> Radio x o
 stampFocusedO o = stampO . L.set focusedO o
