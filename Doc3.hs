@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE Rank2Types #-}
 
 module Doc3 where
 
@@ -12,6 +10,7 @@ import qualified Filter             as F
 import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
                                            WantFocus, Don'tWantFocus))
 import qualified Focus              as Focus
+import qualified Data.Monoid        as DM
 
 data DocP f b d = DocP (US (f b, d))
 
@@ -73,8 +72,8 @@ instance A.Applicative f => A.Applicative (ReadMessage f) where
   pure = ReadMessage . A.pure . A.pure
   ReadMessage ff <*> ReadMessage fx = ReadMessage (A.liftA2 (A.<*>) ff fx)
 
--- Should be `Getting (First a) s a`
-handle :: L.Fold s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
+-- Fold s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
+handle :: L.Getting (DM.First a) s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
 handle l f = handleEvent (\e b -> case e L.^? l of
                              Just m  -> f m b
                              Nothing -> b)
