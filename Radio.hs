@@ -9,6 +9,7 @@ import           Control.Arrow      ((>>>))
 import qualified Control.Lens       as L
 import qualified Control.Applicative as A
 import qualified Control.Monad.Trans.State as St
+import qualified Data.Functor.Identity as Id
 
 data Radio x o = Chosen x [o]
                | Unchosen o (Radio x o)
@@ -102,6 +103,12 @@ traverseRadio' :: A.Applicative f
                -> Radio x o
                -> f (Radio x' o')
 traverseRadio' fx fo = traverseRadio (A.liftA2 (,)) . fmapRadio fx fo
+
+over2 :: ((a -> Id.Identity a')
+       -> (b -> Id.Identity b')
+       -> (s -> Id.Identity t))
+      -> (a -> a') -> (b -> b') -> (s -> t)
+over2 l f g = Id.runIdentity . l (return . f) (return . g)
 
 enumerate :: a -> St.State Int (a, Int)
 enumerate a = do
