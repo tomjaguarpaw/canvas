@@ -236,7 +236,6 @@ traverseRadioO fx fo = \case
                            A.<*> fo o
                            A.<*> traverseRadio' fx fo rs
 
-
 fmapRadioX :: (x -> x') -> (o -> o') -> RadioX x o -> RadioX x' o'
 fmapRadioX = over2 traverseRadioX
 
