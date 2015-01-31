@@ -40,36 +40,6 @@ canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
 elementRadio :: Widget [H.Element] CircleEvent (Radio Selected Unselected)
 elementRadio = H.elementOfCircles . canvasRadio
 
-radioC :: Widget dxx evx x -> Widget doo evo o
-       -> Widget (Radio dxx doo) (Either (evx, RadioX x o) (evo, RadioO x o))
-                 (Radio x o)
-radioC wx wo = radioW
-  Component { widget  = wx
-            , handler = \b -> Response
-                { responseEvent = Left (event b, newContext b)
-                , responseWhole = newWhole b } }
-  Component { widget  = wo
-            , handler = \b -> Response
-                { responseEvent = Right (event b, newContext b)
-                , responseWhole = newWhole b } }
-
-radioE :: Widget dxx evx x -> Widget doo evo o
-          -> Widget (Radio dxx doo)
-                    (Either
-                       (Behaviours evx (Radio x o) (RadioX x o) x)
-                       (Behaviours evo (Radio x o) (RadioO x o) o))
-                    (Radio x o)
-radioE wx wo = radioW
-  Component { widget  = wx
-            , handler = \b -> Response
-                { responseEvent = Left b
-                , responseWhole = newWhole b } }
-  Component { widget  = wo
-            , handler = \b -> Response
-                { responseEvent = Right b
-                , responseWhole = newWhole b } }
-
-
 radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
        -> Component d2 e2 ev' (Radio x o) (RadioO x o) o
        -> Widget (Radio d1 d2) ev' (Radio x o)
@@ -107,33 +77,6 @@ radioW cx co = R.traverseRadio (A.liftA2 (,))
               let radioONew = R.setFocusedO oNew radioOOld
               in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)))
                                       (widget co (R.focusedO radioOOld))
-
-radioA :: Widget d1 e1 x -> Widget d2 e2 o
-       -> Radio (x, a1) (o, a2)
-       -> D.DocF (Either (e1, a1) (e2, a2), Radio (x, a1) (o, a2)) (Radio d1 d2)
-radioA wx wo = R.traverseRadio (A.liftA2 (,))
-               . extendRadio fx fo
-  where fx radioXAOld = D.fmapResponse (\(ev, xNew@(_, a)) ->
-              let radioXNew =   R.setFocusedX xNew radioXAOld
-              in (Left (ev, a), R.stampX radioXNew))
-                        (let (xOld, a) = R.focusedX radioXAOld
-                         in D.fmapNewState (\xNew -> (xNew, a)) (wx xOld))
-        fo radioOAOld = D.fmapResponse (\(ev, oNew@(_, a)) ->
-              let radioONew = R.setFocusedO oNew radioOAOld
-              in (Right (ev, a), R.stampO radioONew))
-                        (let (oOld, a) = R.focusedO radioOAOld
-                         in D.fmapNewState (\xNew -> (xNew, a)) (wo oOld))
-
-vert :: Widget [H.Element] ev x
-     -> Widget [H.Element] ev' x'
-     -> Widget [H.Element] (Either ev ev') (x, x')
-vert w w' = D.mapWidgetDoc (uncurry (++)) $ vertW'
-  Component { widget = w
-            , handler = \b -> Response { responseEvent = Left (event b)
-                                       , responseWhole = newWhole b } }
-  Component { widget = w'
-            , handler = \b -> Response { responseEvent = Right (event b)
-                                       , responseWhole = newWhole b } }
 
 resetter :: Widget [H.Element] () (Radio Selected Unselected, B.Button)
 resetter = D.mapWidgetDoc (uncurry (++)) $ vertW'
