@@ -1,4 +1,4 @@
-module Widgets where
+module TextSelect where
 
 import qualified Control.Lens       as L
 import qualified TextEntry          as T

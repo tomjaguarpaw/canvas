@@ -4,7 +4,7 @@
 module Filter where
 
 import qualified TextEntry          as T
-import qualified Widgets            as W
+import qualified TextSelect         as TS
 import qualified Select             as S
 import qualified Data.Text.Lazy     as DT
 import qualified Radio              as R
@@ -67,5 +67,5 @@ filterA = mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
           . mapDoc (\(((), d1), d2) -> d1 ++ d2)
           . (static
            `pairE` T.textEntryC
-           `pairE` W.textSelectC)
+           `pairE` TS.textSelectC)
           . (\(Filter a t tt s) -> ((a, t), (tt, s)))
