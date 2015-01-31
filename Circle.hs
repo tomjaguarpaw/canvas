@@ -6,8 +6,9 @@ module Circle where
 
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
-import           Doc                (GUICircle(GUICircle), Doc, gcName, gcColor)
+import           Doc                (Doc)
 import qualified Doc                as D
+import qualified Html               as H
 import           Control.Monad      (guard)
 
 data CircleEvent = MouseOver | MouseOut | MouseClick deriving Show
@@ -42,12 +43,12 @@ circleHandle MouseOver  = L.set  (cState.csHovered)  True
 circleHandle MouseOut   = L.set  (cState.csHovered)  False
 circleHandle MouseClick = L.over (cState.csSelected) not
 
-guiCircle :: T.Text -> Circle -> GUICircle
-guiCircle n c = GUICircle { gcName  = n
-                          , gcColor = (circleColor . L.view cState) c }
+guiCircle :: T.Text -> Circle -> H.GUICircle
+guiCircle n c = H.GUICircle { H.gcName  = n
+                            , H.gcColor = (circleColor . L.view cState) c }
 
 -- TODO: duplication with button
-circle :: Circle -> Doc [GUICircle] CircleEvent
+circle :: Circle -> Doc [H.GUICircle] CircleEvent
 circle c = D.Doc $ do
   n <- D.unique
   return ([guiCircle n c], parseMessage n)
@@ -57,18 +58,18 @@ circle c = D.Doc $ do
                                       parseCircleEvent theEvent
                                     _ -> Nothing
 
-circleC :: Circle -> Doc [GUICircle] (CircleEvent, Circle)
+circleC :: Circle -> Doc [H.GUICircle] (CircleEvent, Circle)
 circleC = D.widgetHandler circleHandle circle
 
 data Selected = Selected Circle deriving Show
 
 data Unselected = Unselected Circle  deriving Show
 
-selectedC :: Selected -> Doc [GUICircle] (CircleEvent, Selected)
+selectedC :: Selected -> Doc [H.GUICircle] (CircleEvent, Selected)
 selectedC = D.widgetHandler selectedHandle (circle . unselected)
   where unselected (Selected s) = s
 
-unselectedC :: Unselected -> Doc [GUICircle] (CircleEvent, Unselected)
+unselectedC :: Unselected -> Doc [H.GUICircle] (CircleEvent, Unselected)
 unselectedC = D.widgetHandler unselectedHandle (circle . ununselected)
   where ununselected (Unselected s) = s
 

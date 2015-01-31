@@ -9,10 +9,10 @@ module TextEntry where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
+import qualified Html               as H
 import           Text.Read          (readMaybe)
 import           Control.Applicative ((<*>), pure)
 import           Control.Monad      (guard)
-import qualified Focused            as F
 
 data TextEntryEvent = Input T.Text Int
 data TextEntry = TextEntry { _tText     :: T.Text
@@ -27,27 +27,22 @@ parseTextEntryEvent = \case "input" -> Just Input
 textEntryMake :: T.Text -> TextEntry
 textEntryMake t = TextEntry { _tText = t, _tFocused = False, _tPosition = 0 }
 
-textEntryHandle :: TextEntryEvent -> TextEntry -> F.Focused TextEntry
-textEntryHandle i te = F.Focused { F._mFocused  = Just (teh True)
-                                 , F._defocused = teh False }
-  where teh f = textEntryHandle' f i te
-
 textEntryHandle' :: Bool -> TextEntryEvent -> TextEntry -> TextEntry
 textEntryHandle' f (Input n p) _ = TextEntry { _tText    = n
                                              , _tFocused = f
                                              , _tPosition = p }
 
-guiTextEntry :: T.Text -> TextEntry -> D.GUITextEntry
-guiTextEntry n b = D.GUITextEntry { D.gtName     = n
-                                  , D.gtText     = _tText b
-                                  , D.gtFocused  = _tFocused b
-                                  , D.gtPosition = _tPosition b }
+guiTextEntry :: T.Text -> TextEntry -> H.GUITextEntry
+guiTextEntry n b = H.GUITextEntry { H.gtName     = n
+                                  , H.gtText     = _tText b
+                                  , H.gtFocused  = _tFocused b
+                                  , H.gtPosition = _tPosition b }
 
 -- FIXME: duplication with circle, textEntry
-textEntry :: TextEntry -> D.Doc [D.Element] TextEntryEvent
+textEntry :: TextEntry -> D.Doc [H.Element] TextEntryEvent
 textEntry b = D.Doc $ do
   n <- D.unique
-  return ([D.TextEntry (guiTextEntry n b)], parseMessage n)
+  return ([H.TextEntry (guiTextEntry n b)], parseMessage n)
   where parseMessage n message = case T.split (== ',') message
                                  of [theName, theEvent, theValue, pos] -> do
                                       guard (theName == n)
@@ -55,10 +50,3 @@ textEntry b = D.Doc $ do
                                            <*> pure theValue
                                            <*> (readMaybe (T.unpack pos) :: Maybe Int)
                                     _ -> Nothing
-textEntryCNF :: TextEntry
-             -> D.Doc [D.Element] (TextEntryEvent, F.Focused TextEntry)
-textEntryCNF =  D.widgetHandler textEntryHandle textEntry
-
-textEntryC :: F.Focused TextEntry
-           -> D.Doc [D.Element] (TextEntryEvent, F.Focused TextEntry)
-textEntryC =  textEntryCNF . F.mostFocused

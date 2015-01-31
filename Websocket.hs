@@ -9,6 +9,7 @@ import           Radio              (RadioX, RadioO, Radio(Chosen),
                                      radioToNEL, extendRadio)
 import qualified Radio              as R
 import qualified Doc                as D
+import qualified Html               as H
 import qualified Button             as B
 import           Doc                (handleMessage)
 import           Circle             (CircleEvent(MouseClick),
@@ -21,7 +22,7 @@ import qualified Control.Applicative as A
 import           Widget             (Widget, Behaviours(..), Response(..),
                                      Component(..), tupleOfResponse, vertW')
 
-canvasRadio :: Widget [D.GUICircle] CircleEvent (Radio Selected Unselected)
+canvasRadio :: Widget [H.GUICircle] CircleEvent (Radio Selected Unselected)
 canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
   (radioW Component { widget  = selectedC
                     , handler = \b -> Response
@@ -36,8 +37,8 @@ canvasRadio = D.mapWidgetDoc (concat . NEL.toList . radioToNEL)
                                         (oldContext b)
                           _          -> newWhole b } })
 
-elementRadio :: Widget [D.Element] CircleEvent (Radio Selected Unselected)
-elementRadio = D.elementOfCircles . canvasRadio
+elementRadio :: Widget [H.Element] CircleEvent (Radio Selected Unselected)
+elementRadio = H.elementOfCircles . canvasRadio
 
 radioC :: Widget dxx evx x -> Widget doo evo o
        -> Widget (Radio dxx doo) (Either (evx, RadioX x o) (evo, RadioO x o))
@@ -123,9 +124,9 @@ radioA wx wo = R.traverseRadio (A.liftA2 (,))
                         (let (oOld, a) = R.focusedO radioOAOld
                          in D.fmapNewState (\xNew -> (xNew, a)) (wo oOld))
 
-vert :: Widget [D.Element] ev x
-     -> Widget [D.Element] ev' x'
-     -> Widget [D.Element] (Either ev ev') (x, x')
+vert :: Widget [H.Element] ev x
+     -> Widget [H.Element] ev' x'
+     -> Widget [H.Element] (Either ev ev') (x, x')
 vert w w' = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget = w
             , handler = \b -> Response { responseEvent = Left (event b)
@@ -134,7 +135,7 @@ vert w w' = D.mapWidgetDoc (uncurry (++)) $ vertW'
             , handler = \b -> Response { responseEvent = Right (event b)
                                        , responseWhole = newWhole b } }
 
-resetter :: Widget [D.Element] () (Radio Selected Unselected, B.Button)
+resetter :: Widget [H.Element] () (Radio Selected Unselected, B.Button)
 resetter = D.mapWidgetDoc (uncurry (++)) $ vertW'
   Component { widget  = elementRadio
             , handler = \b -> Response { responseEvent = ()
@@ -154,7 +155,7 @@ runServer pc = do
 
   loopGUI conn resetter (initialGui, B.buttonMake "Reset")
 
-loopGUI :: WS.Connection -> (a -> D.Doc [D.Element] (ev, a)) -> a -> IO b
+loopGUI :: WS.Connection -> (a -> D.Doc [H.Element] (ev, a)) -> a -> IO b
 loopGUI conn canvas gui = do
   let canvas' = (fmap . D.fmapResponse) snd canvas
 
@@ -165,7 +166,7 @@ loopGUI conn canvas gui = do
 
   print msg
 
-  WS.sendTextData conn (D.renderElements (canvas' nextGui))
+  WS.sendTextData conn (H.renderElements (canvas' nextGui))
 
   loopGUI conn canvas nextGui
 

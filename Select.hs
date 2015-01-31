@@ -7,6 +7,7 @@ module Select where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
+import qualified Html               as H
 import qualified Radio              as R
 import           Control.Monad      (guard)
 import qualified Data.List.NonEmpty as NEL
@@ -34,16 +35,16 @@ selectHandle :: SelectEvent a -> Select a -> Select a
 selectHandle (Choice n _) = L.over sRadio (R.chooseIndex n)
                             . L.set sFocused True
 
-guiSelect :: T.Text -> Select a -> D.GUISelect
-guiSelect n s = D.GUISelect { D.gsName = n
-                            , D.gsRadio = R.fmapRadio fst fst (_sRadio s)
-                            , D.gsFocused = _sFocused s }
+guiSelect :: T.Text -> Select a -> H.GUISelect
+guiSelect n s = H.GUISelect { H.gsName = n
+                            , H.gsRadio = R.fmapRadio fst fst (_sRadio s)
+                            , H.gsFocused = _sFocused s }
 
 -- TODO: duplication with circle
-select :: Select a -> D.Doc [D.Element] (SelectEvent a)
+select :: Select a -> D.Doc [H.Element] (SelectEvent a)
 select b = D.Doc $ do
   n <- D.unique
-  return ([D.Select (guiSelect n b)], parseMessage n)
+  return ([H.Select (guiSelect n b)], parseMessage n)
   where parseMessage n message = case T.split (== ',') message
                                  of [theName, theEvent, theValue] -> do
                                       guard (theName == n)
@@ -56,5 +57,5 @@ select b = D.Doc $ do
 
                                     _ -> Nothing
 
-selectC :: Select a -> D.Doc [D.Element] (SelectEvent a, Select a)
+selectC :: Select a -> D.Doc [H.Element] (SelectEvent a, Select a)
 selectC = D.widgetHandler selectHandle select

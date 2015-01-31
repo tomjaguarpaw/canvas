@@ -2,6 +2,7 @@ module Run where
 
 import qualified Doc3               as D3
 import qualified Doc                as D
+import qualified Html               as H
 import qualified Network.WebSockets as WS
 import qualified Filter             as F
 import qualified Focus              as Focus
@@ -28,7 +29,7 @@ runServer pc = do
       gui = W.filterC
 
       handler d = do
-        WS.sendTextData conn (D.renderElements' d)
+        WS.sendTextData conn (H.renderElements' d)
         msg <- WS.receiveData conn
         print msg
         return msg
