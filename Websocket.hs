@@ -46,37 +46,37 @@ radioW :: Component d1 e1 ev' (Radio x o) (RadioX x o) x
 radioW cx co = R.sequenceRadio (A.liftA2 (,))
                . extendRadio fx fo
   where behaviourX ev radioXOld radioXNew =
-          Behaviours { oldComponent = R.focusedX radioXOld
+          Behaviours { oldComponent = L.view R.focusedX radioXOld
                      , oldContext   = radioXOld
                      , oldWhole     = R.stampX radioXOld
-                     , newComponent = R.focusedX radioXNew
+                     , newComponent = L.view R.focusedX radioXNew
                      , newContext   = radioXNew
                      , newWhole     = R.stampX radioXNew
                      , event        = ev
-                     , fromComponent = \x -> R.stampX (R.setFocusedX x radioXOld)
+                     , fromComponent = \x -> R.stampX (L.set R.focusedX x radioXOld)
                      , fromContext   = R.stampX
                      , fromWhole     = id }
         behaviourO ev radioOOld radioONew =
-          Behaviours { oldComponent = R.focusedO radioOOld
+          Behaviours { oldComponent = L.view R.focusedO radioOOld
                      , oldContext   = radioOOld
                      , oldWhole     = R.stampO radioOOld
-                     , newComponent = R.focusedO radioONew
+                     , newComponent = L.view R.focusedO radioONew
                      , newContext   = radioONew
                      , newWhole     = R.stampO radioONew
                      , event        = ev
-                     , fromComponent = \o -> R.stampO (R.setFocusedO o radioOOld)
+                     , fromComponent = \o -> R.stampO (L.set R.focusedO o radioOOld)
                      , fromContext   = R.stampO
                      , fromWhole     = id }
 
         fx radioXOld = D.fmapResponse (\(ev, xNew) ->
-              let radioXNew = R.setFocusedX xNew radioXOld
+              let radioXNew = L.set R.focusedX xNew radioXOld
               in tupleOfResponse (handler cx (behaviourX ev radioXOld radioXNew)))
-                                      (widget cx (R.focusedX radioXOld))
+                                      (widget cx (L.view R.focusedX radioXOld))
 
         fo radioOOld = D.fmapResponse (\(ev, oNew) ->
-              let radioONew = R.setFocusedO oNew radioOOld
+              let radioONew = L.set R.focusedO oNew radioOOld
               in tupleOfResponse (handler co (behaviourO ev radioOOld radioONew)))
-                                      (widget co (R.focusedO radioOOld))
+                                      (widget co (L.view R.focusedO radioOOld))
 
 resetter :: Widget [H.Element] () (Radio Selected Unselected, B.Button)
 resetter = D.mapWidgetDoc (uncurry (++)) $ pair
