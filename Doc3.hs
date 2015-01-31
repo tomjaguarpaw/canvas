@@ -6,7 +6,6 @@ import Doc                          (US)
 import qualified Control.Lens       as L
 import qualified Control.Applicative as A
 import qualified Doc                as D
-import qualified Filter             as F
 import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
                                            WantFocus, Don'tWantFocus))
 import qualified Focus              as Focus
@@ -15,6 +14,11 @@ import qualified Data.Monoid        as DM
 data DocP f b d = DocP (US (f b, d))
 
 data Doc a b d = Doc (DocP (ReadMessage (Focus a)) b d)
+
+data Void = Void !Void
+
+absurd :: Void -> a
+absurd (Void v) = absurd v
 
 mapDocP :: (d -> d') -> DocP f b d -> DocP f b d'
 mapDocP f (DocP u) = DocP (L.over (L.mapped.L._2) f u)
@@ -47,7 +51,7 @@ pairE w1 w2 (b1, b2) = mapEvent Left (w1 b1) `pair` mapEvent Right (w2 b2)
 mapDoc :: (d -> d') -> Doc a b d -> Doc a b d'
 mapDoc f (Doc dp) = Doc (mapDocP f dp)
 
-static :: b -> Doc F.Void b ()
+static :: b -> Doc Void b ()
 static b = Doc (DocP (A.pure (ReadMessage (A.pure (Don'tWantFocus b)), ())))
 
 handleEvent :: (e -> b -> b) -> Doc e b d -> Doc e b d

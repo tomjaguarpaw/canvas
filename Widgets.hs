@@ -7,7 +7,6 @@ import qualified Doc                as D
 import qualified Html               as H
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
-import qualified Filter             as F
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 import           Doc3               (Doc(Doc), handle, pairE, mapDoc,
@@ -65,27 +64,3 @@ textSelectC = handle L._Left (\_ b -> L.set (L._2.S.sRadio.R.chosen.L._1)
                                             b)
               . mapDoc (uncurry (++))
               . (textEntryC `pairE` selectC)
-
-
-filterC :: F.Filter -> Doc F.FilterEvent F.Filter [H.Element]
-filterC = handle F._EditorEvent
-          (\_ a -> L.set (F.fAv.F.aAv.R.chosen)
-                         (L.view (F.fEd.T.tText) a) a)
-          . handle F._FilterEvent
-          (\_ a -> L.set F.fSe
-                         (F.selectFromAvailable (L.view F.fFi a)
-                                                (L.view F.fAv a)) a)
-          . handle (F._SelectEvent.S.cEv)
-          (\i a -> L.over (F.fAv.F.aAv) (R.chooseIndex i) a)
-
-          . filterA
-
-filterA :: F.Filter -> Doc F.FilterEvent F.Filter [H.Element]
-filterA = mapBehaviour (\((a, t), (tt, s)) -> F.Filter a t tt s)
-          . mapEvent (either (either F.absurd F.FilterEvent)
-                           (either F.EditorEvent F.SelectEvent))
-          . mapDoc (\(((), d1), d2) -> d1 ++ d2)
-          . (static
-           `pairE` textEntryC
-           `pairE` textSelectC)
-          . (\(F.Filter a t tt s) -> ((a, t), (tt, s)))

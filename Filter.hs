@@ -4,15 +4,14 @@
 module Filter where
 
 import qualified TextEntry          as T
+import qualified Widgets            as W
 import qualified Select             as S
 import qualified Data.Text.Lazy     as DT
 import qualified Radio              as R
 import qualified Control.Lens       as L
-
-data Void = Void !Void
-
-absurd :: Void -> a
-absurd (Void v) = absurd v
+import qualified Html               as H
+import           Doc3               (Doc, mapBehaviour, mapEvent, mapDoc,
+                                     handle, absurd, static, pairE)
 
 data Available = Available { _aAv :: R.Radio DT.Text DT.Text } deriving Show
 $(L.makeLenses ''Available)
@@ -46,3 +45,27 @@ filterMake = Filter available
         available = Available (R.Chosen "tom 1" ["tom 2", "tim 1", "tim 2",
                                                  "bob 1", "bob 2"])
         textEntry = (T.textEntryMake "")
+
+
+filterC :: Filter -> Doc FilterEvent Filter [H.Element]
+filterC = handle _EditorEvent
+          (\_ a -> L.set (fAv.aAv.R.chosen)
+                         (L.view (fEd.T.tText) a) a)
+          . handle _FilterEvent
+          (\_ a -> L.set fSe
+                         (selectFromAvailable (L.view fFi a)
+                                                (L.view fAv a)) a)
+          . handle (_SelectEvent.S.cEv)
+          (\i a -> L.over (fAv.aAv) (R.chooseIndex i) a)
+
+          . filterA
+
+filterA :: Filter -> Doc FilterEvent Filter [H.Element]
+filterA = mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
+          . mapEvent (either (either absurd FilterEvent)
+                           (either EditorEvent SelectEvent))
+          . mapDoc (\(((), d1), d2) -> d1 ++ d2)
+          . (static
+           `pairE` W.textEntryC
+           `pairE` W.textSelectC)
+          . (\(Filter a t tt s) -> ((a, t), (tt, s)))
