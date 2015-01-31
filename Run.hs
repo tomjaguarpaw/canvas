@@ -5,6 +5,7 @@ import qualified Doc                as D
 import qualified Network.WebSockets as WS
 import qualified Filter             as F
 import qualified Focus              as Focus
+import qualified Widgets            as W
 
 run' :: (d -> IO D.Message) -> (s -> D3.Doc a s d) -> s -> IO s
 run' f fd s = do
@@ -24,7 +25,7 @@ runServer pc = do
 
   let initialGui = F.filterMake
 
-      gui = D3.filterC
+      gui = W.filterC
 
       handler d = do
         WS.sendTextData conn (D.renderElements' d)
