@@ -10,26 +10,7 @@ import qualified Data.Text.Lazy     as DT
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 import           Doc3               (Doc(Doc), handle, pairE, mapDoc,
-                                     static, mapBehaviour, mapEvent,
                                      ReadMessage(ReadMessage), DocP(DocP))
-
-textEntryC :: T.TextEntry -> Doc T.TextEntryEvent T.TextEntry [H.Element]
-textEntryC te = (Doc
-                 . DocP
-                 . fmap (\(d, m) ->
-                          (ReadMessage (\message -> case m message of
-                                           Nothing -> if L.view T.tFocused te
-                                                      then WantFocus te
-                                                           (L.set T.tFocused False te)
-                                                      else Don'tWantFocus te
-                                           Just teev -> NeedFocus
-                                                        teev
-                                                        (T.textEntryHandle
-                                                         teev te)
-                                       ), d))
-                 . D.unDoc
-                 . T.textEntry) te
-
 
 selectC :: S.Select a -> Doc (S.SelectEvent a) (S.Select a) [H.Element]
 selectC se = (Doc
@@ -63,4 +44,4 @@ textSelectC = handle L._Left (\_ b -> L.set (L._2.S.sRadio.R.chosen.L._1)
                                              . L.set (L._1.T.tPosition) newLength)
                                             b)
               . mapDoc (uncurry (++))
-              . (textEntryC `pairE` selectC)
+              . (T.textEntryC `pairE` selectC)

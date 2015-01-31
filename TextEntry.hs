@@ -9,6 +9,10 @@ module TextEntry where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
+import           Doc3               (Doc(Doc), DocP(DocP),
+                                     ReadMessage(ReadMessage))
+import           Focus              (Focus(NeedFocus,
+                                           WantFocus, Don'tWantFocus))
 import qualified Html               as H
 import           Text.Read          (readMaybe)
 import           Control.Applicative ((<*>), pure)
@@ -50,3 +54,20 @@ textEntry b = D.Doc $ do
                                            <*> pure theValue
                                            <*> (readMaybe (T.unpack pos) :: Maybe Int)
                                     _ -> Nothing
+
+textEntryC :: TextEntry -> Doc TextEntryEvent TextEntry [H.Element]
+textEntryC te = (Doc
+                 . DocP
+                 . fmap (\(d, m) ->
+                          (ReadMessage (\message -> case m message of
+                                           Nothing -> if L.view tFocused te
+                                                      then WantFocus te
+                                                           (L.set tFocused False te)
+                                                      else Don'tWantFocus te
+                                           Just teev -> NeedFocus
+                                                        teev
+                                                        (textEntryHandle
+                                                         teev te)
+                                       ), d))
+                 . D.unDoc
+                 . textEntry) te

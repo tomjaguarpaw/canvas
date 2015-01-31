@@ -66,6 +66,6 @@ filterA = mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
                            (either EditorEvent SelectEvent))
           . mapDoc (\(((), d1), d2) -> d1 ++ d2)
           . (static
-           `pairE` W.textEntryC
+           `pairE` T.textEntryC
            `pairE` W.textSelectC)
           . (\(Filter a t tt s) -> ((a, t), (tt, s)))
