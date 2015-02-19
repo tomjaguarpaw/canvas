@@ -47,6 +47,12 @@ pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
 pair :: A.Applicative f => DocF f b d -> DocF f b' d' -> DocF f (b, b') (d, d')
 pair (Doc dp) (Doc dp') = Doc (pairP dp dp')
 
+pairF :: A.Applicative f
+      => DocF f (ba -> bb) (da -> db)
+      -> DocF f ba da
+      -> DocF f bb db
+pairF x y = mapBD (uncurry ($)) (uncurry ($)) (pair x y)
+
 pairC :: (b -> Doc a b d) -> (b' -> Doc a b' d')
       -> ((b, b') -> Doc a (b, b') (d, d'))
 pairC w1 w2 (b1, b2) = w1 b1 `pair` w2 b2

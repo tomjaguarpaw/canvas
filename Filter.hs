@@ -12,6 +12,7 @@ import qualified Control.Lens       as L
 import qualified Html               as H
 import           Doc3               (Doc, mapBehaviour, mapEvent, mapDoc,
                                      handle, absurd, static, pairE)
+import qualified Doc3               as D3
 
 data Available = Available { _aAv :: R.Radio DT.Text DT.Text } deriving Show
 $(L.makeLenses ''Available)
@@ -61,9 +62,11 @@ filterC = handle _EditorEvent
           . filterA
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
-filterA = mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
-          . mapEvent (either (either absurd FilterEvent)
-                           (either EditorEvent SelectEvent))
-          . mapDoc (\(((), d1), d2) -> d1 ++ d2)
-          . (static `pairE` T.textEntryC `pairE` TS.textSelectC)
-          . (\(Filter a t tt s) -> ((a, t), (tt, s)))
+filterA (Filter a t tt s) = (mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
+                             . mapEvent (either (either absurd FilterEvent)
+                                         (either EditorEvent SelectEvent))
+                             . mapDoc (\(((), d1), d2) -> d1 ++ d2))
+                            (D3.mapBD boller boller (mapEvent (Left . Left) (static a))
+                             `D3.pairF` (mapEvent (Left . Right) (T.textEntryC t))
+                             `D3.pairF` (mapEvent Right (TS.textSelectC (tt, s))))
+  where boller a t e = ((a, t), e)
