@@ -174,6 +174,15 @@ traverseNEL (***) = ne >>> \case
   Left fa         -> fmap singleton fa
   Right (fa, fas) -> fmap (uncurry NEL.cons) (fa *** traverseNEL (***) fas)
 
+sequenceNEL2 :: (forall a b a' b'. f a a' -> f b b' -> f (a, b) (a', b'))
+             -> (forall a b a' b'. (a -> b) -> (a' -> b') -> f a a' -> f b b')
+             -> NEL.NonEmpty (f c d)
+             -> f (NEL.NonEmpty c) (NEL.NonEmpty d)
+sequenceNEL2 (***) bimap = ne >>> \case
+  Left fa         -> bimap singleton singleton fa
+  Right (fa, fas) -> bimap (uncurry NEL.cons) (uncurry NEL.cons)
+                           (fa *** sequenceNEL2 (***) bimap fas)
+
 ne :: NEL.NonEmpty a -> Either a (a, NEL.NonEmpty a)
 ne (a :| []) = Left a
 ne (a :| (a':as)) = Right (a, a' :| as)
