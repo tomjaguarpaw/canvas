@@ -34,11 +34,17 @@ mapEvent :: (e -> e') -> Doc e b d -> Doc e' b d
 mapEvent f (Doc (DocP us)) = Doc (DocP (L.over l f us))
   where l = (L.mapped.L._1.answer.Focus.attached)
 
+emitting :: Doc e b d -> (e -> e') -> Doc e' b d
+emitting = flip mapEvent
+
 mapBehaviour :: Functor f => (b -> b') -> DocF f b d -> DocF f b' d
 mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))
 
 mapBD :: Functor f => (b -> b') -> (d -> d') -> DocF f b d -> DocF f b' d'
 mapBD f g = mapBehaviour f . mapDoc g
+
+mapBDT :: Functor f => (b -> b', d -> d') -> DocF f b d -> DocF f b' d'
+mapBDT = uncurry mapBD
 
 pairP :: A.Applicative f => DocP f b d -> DocP f b' d' -> DocP f (b, b') (d, d')
 pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
