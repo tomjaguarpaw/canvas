@@ -9,7 +9,7 @@ module TextEntry where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
-import           Doc3               (Doc(Doc), DocP(DocP),
+import           Doc3               (DocF(Doc), DocP(DocP), Doc,
                                      ReadMessage(ReadMessage))
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))

@@ -12,7 +12,7 @@ import qualified Radio              as R
 import           Control.Monad      (guard)
 import qualified Data.List.NonEmpty as NEL
 import           Text.Read          (readMaybe)
-import           Doc3               (Doc(Doc), DocP(DocP),
+import           Doc3               (DocF(Doc), DocP(DocP), Doc,
                                      ReadMessage(ReadMessage))
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))

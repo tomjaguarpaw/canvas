@@ -10,10 +10,14 @@ import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
                                            WantFocus, Don'tWantFocus))
 import qualified Focus              as Focus
 import qualified Data.Monoid        as DM
+import qualified Control.Monad.Trans.Writer as W
 
 data DocP f b d = DocP (US (f b, d))
 
-data Doc a b d = Doc (DocP (ReadMessage (Focus a)) b d)
+data DocF f b d = Doc (DocP (ReadMessage f) b d)
+
+type DocR a b d = DocF (W.Writer (DM.First a)) b d
+type Doc a b d  = DocF (Focus a) b d
 
 data Void = Void !Void
 
@@ -30,14 +34,17 @@ mapEvent :: (e -> e') -> Doc e b d -> Doc e' b d
 mapEvent f (Doc (DocP us)) = Doc (DocP (L.over l f us))
   where l = (L.mapped.L._1.answer.Focus.attached)
 
-mapBehaviour :: (b -> b') -> Doc e b d -> Doc e b' d
+mapBehaviour :: Functor f => (b -> b') -> DocF f b d -> DocF f b' d
 mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))
+
+mapBD :: Functor f => (b -> b') -> (d -> d') -> DocF f b d -> DocF f b' d'
+mapBD f g = mapBehaviour f . mapDoc g
 
 pairP :: A.Applicative f => DocP f b d -> DocP f b' d' -> DocP f (b, b') (d, d')
 pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
   where pair' (fb, d) (fb', d') = (A.liftA2 (,) fb fb', (d, d'))
 
-pair :: Doc a b d -> Doc a b' d' -> Doc a (b, b') (d, d')
+pair :: A.Applicative f => DocF f b d -> DocF f b' d' -> DocF f (b, b') (d, d')
 pair (Doc dp) (Doc dp') = Doc (pairP dp dp')
 
 pairC :: (b -> Doc a b d) -> (b' -> Doc a b' d')
@@ -48,7 +55,7 @@ pairE :: (b -> Doc a b d) -> (b' -> Doc a' b' d')
       -> ((b, b') -> Doc (Either a a') (b, b') (d, d'))
 pairE w1 w2 (b1, b2) = mapEvent Left (w1 b1) `pair` mapEvent Right (w2 b2)
 
-mapDoc :: (d -> d') -> Doc a b d -> Doc a b d'
+mapDoc :: (d -> d') -> DocF f b d -> DocF f b d'
 mapDoc f (Doc dp) = Doc (mapDocP f dp)
 
 static :: b -> Doc Void b ()
