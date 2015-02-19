@@ -10,8 +10,8 @@ import qualified Data.Text.Lazy     as DT
 import qualified Radio              as R
 import qualified Control.Lens       as L
 import qualified Html               as H
-import           Doc3               (Doc, mapBehaviour, mapEvent, mapDoc,
-                                     handle, absurd, static, pairE)
+import           Doc3               (Doc, mapEvent,
+                                     handle, absurd, static)
 import qualified Doc3               as D3
 
 data Available = Available { _aAv :: R.Radio DT.Text DT.Text } deriving Show
@@ -62,11 +62,8 @@ filterC = handle _EditorEvent
           . filterA
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
-filterA (Filter a t tt s) = (mapBehaviour (\((a, t), (tt, s)) -> Filter a t tt s)
-                             . mapEvent (either (either absurd FilterEvent)
-                                         (either EditorEvent SelectEvent))
-                             . mapDoc (\(((), d1), d2) -> d1 ++ d2))
-                            (D3.mapBD boller boller (mapEvent (Left . Left) (static a))
-                             `D3.pairF` (mapEvent (Left . Right) (T.textEntryC t))
-                             `D3.pairF` (mapEvent Right (TS.textSelectC (tt, s))))
-  where boller a t e = ((a, t), e)
+filterA (Filter a t tt s) = (D3.mapBD boller' boller (mapEvent absurd (static a))
+                             `D3.pairF` (mapEvent FilterEvent (T.textEntryC t))
+                             `D3.pairF` (mapEvent (either EditorEvent SelectEvent) (TS.textSelectC (tt, s))))
+  where boller = const (++)
+        boller' a' = uncurry . Filter a'
