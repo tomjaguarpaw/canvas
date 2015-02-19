@@ -90,6 +90,11 @@ stampO :: RadioO x o -> Radio x o
 stampO (Before rs o os) = rs `appendO` (o:os)
 stampO (After os o rs)  = (os ++ [o]) `prependO` rs
 
+stampNELZ :: NELZ a -> NEL.NonEmpty a
+stampNELZ (NELZ bs b bs') = case bs of
+  []   -> b NEL.:| bs'
+  x:xs -> x NEL.:| (xs ++ [b] ++ bs')
+
 traverseRadio :: A.Applicative f
               => (x -> f x')
               -> (o -> f o')
@@ -152,6 +157,14 @@ extendRadio :: (RadioX x o -> x')
             -> (RadioO x o -> o')
             -> Radio x o -> Radio x' o'
 extendRadio fx fo = fmapRadio fx fo . duplicateRadio
+
+extendNEL' :: [a] -> (NELZ a -> a') -> NEL.NonEmpty a -> NEL.NonEmpty a'
+extendNEL' as f bs = case ne bs of
+  Left c        -> singleton (f (NELZ as c []))
+  Right (c, cs) -> f (NELZ as c (NEL.toList cs)) `NEL.cons` extendNEL' (as ++ [c]) f cs
+
+extendNEL :: (NELZ a -> a') -> NEL.NonEmpty a -> NEL.NonEmpty a'
+extendNEL = extendNEL' []
 
 traverseNEL :: Functor f =>
                (forall a b. f a -> f b -> f (a, b))
