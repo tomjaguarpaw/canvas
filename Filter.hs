@@ -9,13 +9,14 @@ import qualified Select             as S
 import qualified Data.Text.Lazy     as DT
 import qualified Radio              as R
 import qualified Control.Lens       as L
+import           Control.Lens       ((.=), (%=))
 import qualified Html               as H
 import           Doc3               (Doc, emitting, contains, also,
                                      handle, absurd, static)
 
 data Filter = Filter { _fAvailable  :: R.Radio DT.Text DT.Text
                      , _fFilter     :: T.TextEntry
-                     , _fTextSelect :: (T.TextEntry, S.Select Int) }
+                     , _fTextSelect :: TS.TextSelect Int }
               deriving Show
 $(L.makeLenses ''Filter)
 
@@ -34,8 +35,9 @@ selectFromAvailable t = flip S.Select False
 filterMake :: Filter
 filterMake = Filter available
                     textEntry
-                    (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select),
-                    select)
+                    (TS.TextSelect
+                     (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select))
+                     select)
   where select = selectFromAvailable textEntry available
         available = R.Chosen "tom 1" ["tom 2", "tim 1", "tim 2", "bob 1", "bob 2"]
         textEntry = (T.textEntryMake "")
@@ -44,15 +46,17 @@ filterMake = Filter available
 filterC :: Filter -> Doc FilterEvent Filter [H.Element]
 filterC = handle _EditorEvent
           (\_ -> do
-              c <- L.use (fTextSelect.L._1.T.tText)
-              fAvailable.R.chosen L..= c)
+              c <- L.use (fTextSelect.TS.tsText.T.tText)
+              fAvailable.R.chosen .= c)
+
           . handle _FilterEvent
           (\_ -> do
               f <- L.use fFilter
               a <- L.use fAvailable
-              fTextSelect.L._2 L..= selectFromAvailable f a)
+              fTextSelect.TS.tsSelect .= selectFromAvailable f a)
+
           . handle (_SelectEvent.S.cEv)
-          (\i -> fAvailable L.%= R.chooseIndex i)
+          (\i -> fAvailable %= R.chooseIndex i)
 
           . filterA
 
