@@ -3,13 +3,13 @@
 module TextSelect where
 
 import qualified Control.Lens       as L
+import           Control.Lens       ((.=))
 import qualified TextEntry          as T
 import qualified Select             as S
 import qualified Html               as H
 import qualified Radio              as R
 import qualified Data.Text.Lazy     as DT
-import           Doc3               (Doc, handle', pairE, mapDoc, emitting,
-                                     contains, also)
+import           Doc3               (Doc, emitting, contains, also, handle)
 
 data TextSelect a = TextSelect { _tsText   :: T.TextEntry
                                , _tsSelect :: S.Select a }
@@ -20,16 +20,14 @@ textSelectC :: TextSelect a
             -> Doc (Either T.TextEntryEvent (S.SelectEvent a))
                    (TextSelect a)
                    [H.Element]
-textSelectC t = (handle' L._Left (\_ b -> L.set (tsSelect.S.sRadio.R.chosen.L._1)
-                                            (L.view (tsText.T.tText) b)
-                                            b)
-              . handle' L._Right (\_ b -> let newText =
-                                               L.view (tsSelect.S.sRadio.R.chosen.L._1) b
-                                              newLength =
-                                               (fromIntegral . DT.length) newText
-                                         in (L.set (tsText.T.tText) newText
-                                             . L.set (tsText.T.tPosition) newLength)
-                                            b))
+textSelectC t = (handle L._Left (\_ -> do
+                                    text <- L.use (tsText.T.tText)
+                                    tsSelect.S.sRadio.R.chosen.L._1 .= text)
+              . handle L._Right (\_ -> do
+                                    newText <- L.use (tsSelect.S.sRadio.R.chosen.L._1)
+                                    let newLength = (fromIntegral . DT.length) newText
+                                    tsText.T.tText .= newText
+                                    tsText.T.tPosition .= newLength))
                 ((TextSelect, (++))
                  `contains` (T.textEntryC (_tsText t) `emitting` Left)
                  `also` (S.selectC (_tsSelect t) `emitting` Right))
