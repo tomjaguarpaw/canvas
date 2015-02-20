@@ -17,7 +17,7 @@ import           Doc3               (DocF(Doc), DocP(DocP), Doc,
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 
-data SelectEvent a = Choice { _cId :: Int, _cEv :: a }
+data SelectEvent a = Choice { _cId :: Int, _cEvent :: a }
 data Select a = Select { _sRadio   :: R.Radio (T.Text, a) (T.Text, a)
                        , _sFocused :: Bool } deriving Show
 $(L.makeLenses ''SelectEvent)

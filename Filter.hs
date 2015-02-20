@@ -25,8 +25,8 @@ data FilterEvent = FilterEvent T.TextEntryEvent
                  | SelectEvent (S.SelectEvent Int)
 $(L.makePrisms ''FilterEvent)
 
-selectFromAvailable :: T.TextEntry -> R.Radio DT.Text DT.Text -> S.Select Int
-selectFromAvailable t = flip S.Select False
+availableForSelection :: T.TextEntry -> R.Radio DT.Text DT.Text -> S.Select Int
+availableForSelection t = flip S.Select False
                         . R.filterRadio (\(x, _) ->
                                           L.view T.tText t `DT.isPrefixOf` x)
                         . R.getEnumerate
@@ -38,7 +38,7 @@ filterMake = Filter available
                     (TS.TextSelect
                      (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select))
                      select)
-  where select = selectFromAvailable textEntry available
+  where select = availableForSelection textEntry available
         available = R.Chosen "tom 1" ["tom 2", "tim 1", "tim 2", "bob 1", "bob 2"]
         textEntry = (T.textEntryMake "")
 
@@ -53,19 +53,18 @@ filterC = handle _EditorEvent
           (\_ -> do
               f <- L.use fFilter
               a <- L.use fAvailable
-              fTextSelect.TS.tsSelect .= selectFromAvailable f a)
+              fTextSelect.TS.tsSelect .= availableForSelection f a)
 
-          . handle (_SelectEvent.S.cEv)
+          . handle (_SelectEvent.S.cEvent)
           (\i -> fAvailable %= R.chooseIndex i)
 
           . filterA
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
 filterA (Filter available textFilter textSelect) =
-  ((Filter, concatElements)
+  ((Filter, \_ -> (++))
    `contains` (static available `emitting` absurd)
    `also` (T.textEntryC textFilter `emitting` FilterEvent)
    `also` (TS.textSelectC textSelect
                `emitting` either EditorEvent SelectEvent))
-  where concatElements _ filterE textSelectE = filterE ++ textSelectE
 
