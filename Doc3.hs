@@ -11,6 +11,7 @@ import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
 import qualified Focus              as Focus
 import qualified Data.Monoid        as DM
 import qualified Control.Monad.Trans.Writer as W
+import qualified Control.Monad.Trans.State as S
 
 data DocP f b d = DocP (US (f b, d))
 
@@ -95,8 +96,13 @@ instance A.Applicative f => A.Applicative (ReadMessage f) where
   pure = ReadMessage . A.pure . A.pure
   ReadMessage ff <*> ReadMessage fx = ReadMessage (A.liftA2 (A.<*>) ff fx)
 
--- Fold s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
-handle :: L.Getting (DM.First a) s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
+handle :: L.Getting (DM.First a) s a -> (a -> S.State b z) -> Doc s b d -> Doc s b d
 handle l f = handleEvent (\e b -> case e L.^? l of
-                             Just m  -> f m b
+                             Just m  -> S.execState (f m) b
                              Nothing -> b)
+
+-- Fold s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
+handle' :: L.Getting (DM.First a) s a -> (a -> b -> b) -> Doc s b d -> Doc s b d
+handle' l f = handleEvent (\e b -> case e L.^? l of
+                              Just m  -> f m b
+                              Nothing -> b)

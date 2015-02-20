@@ -12,7 +12,6 @@ import qualified Control.Lens       as L
 import qualified Html               as H
 import           Doc3               (Doc, emitting, contains, also,
                                      handle, absurd, static)
-import qualified Control.Monad.Trans.State as S
 
 data Filter = Filter { _fAvailable  :: R.Radio DT.Text DT.Text
                      , _fFilter     :: T.TextEntry
@@ -44,17 +43,16 @@ filterMake = Filter available
 
 filterC :: Filter -> Doc FilterEvent Filter [H.Element]
 filterC = handle _EditorEvent
-          (\_ -> S.execState (do
-                                 c <- L.use (fTextSelect.L._1.T.tText)
-                                 fAvailable.R.chosen L..= c))
+          (\_ -> do
+              c <- L.use (fTextSelect.L._1.T.tText)
+              fAvailable.R.chosen L..= c)
           . handle _FilterEvent
-          (\_ -> S.execState (do
-                                 f <- L.use fFilter
-                                 a <- L.use fAvailable
-                                 fTextSelect.L._2 L..= selectFromAvailable f a))
+          (\_ -> do
+              f <- L.use fFilter
+              a <- L.use fAvailable
+              fTextSelect.L._2 L..= selectFromAvailable f a)
           . handle (_SelectEvent.S.cEv)
-          (\i -> S.execState (do
-              fAvailable L.%= R.chooseIndex i))
+          (\i -> fAvailable L.%= R.chooseIndex i)
 
           . filterA
 
