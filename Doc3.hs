@@ -43,8 +43,8 @@ mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us
 mapBD :: Functor f => (b -> b') -> (d -> d') -> DocF f b d -> DocF f b' d'
 mapBD f g = mapBehaviour f . mapDoc g
 
-mapBDT :: Functor f => (b -> b', d -> d') -> DocF f b d -> DocF f b' d'
-mapBDT = uncurry mapBD
+contains :: Functor f => (b -> b', d -> d') -> DocF f b d -> DocF f b' d'
+contains = uncurry mapBD
 
 pairP :: A.Applicative f => DocP f b d -> DocP f b' d' -> DocP f (b, b') (d, d')
 pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
@@ -53,11 +53,11 @@ pairP (DocP u) (DocP u') = DocP (A.liftA2 pair' u u')
 pair :: A.Applicative f => DocF f b d -> DocF f b' d' -> DocF f (b, b') (d, d')
 pair (Doc dp) (Doc dp') = Doc (pairP dp dp')
 
-pairF :: A.Applicative f
+also :: A.Applicative f
       => DocF f (ba -> bb) (da -> db)
       -> DocF f ba da
       -> DocF f bb db
-pairF x y = mapBD (uncurry ($)) (uncurry ($)) (pair x y)
+also x y = mapBD (uncurry ($)) (uncurry ($)) (pair x y)
 
 pairC :: (b -> Doc a b d) -> (b' -> Doc a b' d')
       -> ((b, b') -> Doc a (b, b') (d, d'))

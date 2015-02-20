@@ -10,17 +10,15 @@ import qualified Data.Text.Lazy     as DT
 import qualified Radio              as R
 import qualified Control.Lens       as L
 import qualified Html               as H
-import           Doc3               (Doc, emitting,
+import           Doc3               (Doc, emitting, contains, also,
                                      handle, absurd, static)
-import qualified Doc3               as D3
 
 data Available = Available { _aAv :: R.Radio DT.Text DT.Text } deriving Show
 $(L.makeLenses ''Available)
 
 data Filter = Filter { _fAv :: Available
                      , _fFi :: T.TextEntry
-                     , _fEd :: T.TextEntry
-                     , _fSe :: (S.Select Int) }
+                     , _fTS :: (T.TextEntry, S.Select Int) }
               deriving Show
 $(L.makeLenses ''Filter)
 
@@ -40,8 +38,8 @@ selectFromAvailable t = flip S.Select False
 filterMake :: Filter
 filterMake = Filter available
                     textEntry
-                    (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select))
-                    select
+                    (T.textEntryMake (L.view (S.sRadio.R.chosen.L._1) select),
+                    select)
   where select = selectFromAvailable textEntry available
         available = Available (R.Chosen "tom 1" ["tom 2", "tim 1", "tim 2",
                                                  "bob 1", "bob 2"])
@@ -51,9 +49,9 @@ filterMake = Filter available
 filterC :: Filter -> Doc FilterEvent Filter [H.Element]
 filterC = handle _EditorEvent
           (\_ a -> L.set (fAv.aAv.R.chosen)
-                         (L.view (fEd.T.tText) a) a)
+                         (L.view (fTS.L._1.T.tText) a) a)
           . handle _FilterEvent
-          (\_ a -> L.set fSe
+          (\_ a -> L.set (fTS.L._2)
                          (selectFromAvailable (L.view fFi a)
                                                 (L.view fAv a)) a)
           . handle (_SelectEvent.S.cEv)
@@ -62,9 +60,11 @@ filterC = handle _EditorEvent
           . filterA
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
-filterA (Filter a t tt s) = ((boller', boller)
-                             `D3.mapBDT` (static a `emitting` absurd)
-                             `D3.pairF` (T.textEntryC t `emitting` FilterEvent)
-                             `D3.pairF` (TS.textSelectC (tt, s) `emitting` either EditorEvent SelectEvent))
-  where boller = const (++)
-        boller' a' = uncurry . Filter a'
+filterA (Filter available textFilter textSelect) =
+  ((Filter, concatElements)
+   `contains` (static available `emitting` absurd)
+   `also` (T.textEntryC textFilter `emitting` FilterEvent)
+   `also` (TS.textSelectC textSelect
+               `emitting` either EditorEvent SelectEvent))
+  where concatElements _ filterE textSelectE = filterE ++ textSelectE
+
