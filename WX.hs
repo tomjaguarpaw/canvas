@@ -60,7 +60,7 @@ main = start hello
 
 runWX :: (t -> DocR t1 t Layout) -> t -> IO ()
 runWX widget initial = do
-  f <- frame    [text := "Hello!"]
+  f <- frame [text := "Hello!"]
   handler <- newIORef (\_ -> close f)
 
   let loop state = do
