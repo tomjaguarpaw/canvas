@@ -36,6 +36,12 @@ buttonD (Button t f) = D.Doc $ do
           let (mn, _) = message
           guard (n == mn)
 
+mkButton :: String -> Button
+mkButton = flip Button False
+
+mkTextEntry :: String -> TextEntry
+mkTextEntry s = TextEntry s False 0
+
 button :: Button -> DocR () Button Layout
 button = D3.makeDoc (\b -> \case Nothing -> if L.view bFocused b
                                             then WantFocus b
@@ -100,8 +106,8 @@ hello = let widget = \(x1, y1) ->
              `contains` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list button) x1)
              `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1 `emitting` const ())
 
-            initial = (Button "Hello" False NEL.:| [Button "Something" False, Button "Else" False],
-                      TextEntry "Foo" False 0 NEL.:| [])
+            initial = (mkButton "Hello" NEL.:| [mkButton "Something", mkButton "Else"],
+                       mkTextEntry "Foo" NEL.:| [])
 
             in runWX widget initial
 
