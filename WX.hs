@@ -4,8 +4,7 @@ import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Graphics.UI.WX as WX
 import Data.IORef
 import qualified Doc                as D
-import           Doc3               (DocF(Doc), DocP(DocP), DocR,
-                                     ReadMessage(ReadMessage), contains, also)
+import           Doc3               (DocR, ReadMessage(ReadMessage), contains, also)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Control.Monad.Trans.Writer as W
@@ -25,15 +24,12 @@ buttonD (Button t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 button :: Button -> DocR () Button Layout
-button b = (Doc
-            . DocP
-            . fmap (\(d, m) -> (ReadMessage (\message -> case m message of
-                                                Nothing -> return b
-                                                Just () -> do
-                                                  W.tell (DM.First (Just ()))
-                                                  return b), d))
-            . D.unDoc
-            . buttonD) b
+button = D3.makeDoc (\b (d, m) -> (ReadMessage (\message -> case m message of
+                                                   Nothing -> return b
+                                                   Just () -> do
+                                                     W.tell (DM.First (Just ()))
+                                                     return b), d))
+                    buttonD
 
 textEntryD :: TextEntry -> D.Doc Layout ()
 textEntryD (TextEntry t) = D.Doc $ do
@@ -42,14 +38,12 @@ textEntryD (TextEntry t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 textEntry :: TextEntry -> DocR () TextEntry Layout
-textEntry te = (Doc . DocP
-                . fmap (\(d, m) -> (ReadMessage (\message -> case m message of
-                                                    Nothing -> return te
-                                                    Just () -> do
-                                                      W.tell (DM.First (Just ()))
-                                                      return te), d))
-            . D.unDoc
-            . textEntryD) te
+textEntry = D3.makeDoc (\te (d, m) -> (ReadMessage (\message -> case m message of
+                                                       Nothing -> return te
+                                                       Just () -> do
+                                                         W.tell (DM.First (Just ()))
+                                                         return te), d))
+                    textEntryD
 
 list :: (s -> DocR e s l) -> NEL.NonEmpty s
      -> DocR e (NEL.NonEmpty s) (NEL.NonEmpty l)

@@ -101,3 +101,5 @@ handle :: L.Getting (DM.First a) s a -> (a -> S.State b z) -> Doc s b d -> Doc s
 handle l f = handleEvent (\e b -> case e L.^? l of
                              Just m  -> S.execState (f m) b
                              Nothing -> b)
+
+makeDoc f w s = (Doc . DocP . fmap (f s) . D.unDoc . w) s
