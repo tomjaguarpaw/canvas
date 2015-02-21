@@ -74,7 +74,10 @@ mapDoc :: (d -> d') -> DocF m f b d -> DocF m f b d'
 mapDoc f (Doc dp) = Doc (mapDocP f dp)
 
 static :: b -> Doc Void b ()
-static b = Doc (DocP (A.pure (ReadMessage (A.pure (Don'tWantFocus b)), ())))
+static = flip bipure ()
+
+bipure :: a -> b -> DocF m (Focus e) a b
+bipure a b = Doc (DocP (A.pure (ReadMessage (A.pure (Don'tWantFocus a)), b)))
 
 handleEvent :: (e -> b -> b) -> Doc e b d -> Doc e b d
 handleEvent h (Doc (DocP us)) = Doc (DocP (f us))

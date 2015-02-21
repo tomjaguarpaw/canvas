@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -10,8 +11,6 @@ import qualified Doc                as D
 import           Doc3               (DocR, contains, also, emitting)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
-import qualified Data.List.NonEmpty as NEL
-import qualified Radio              as R
 import qualified Graphics.UI.WXCore.WxcClassesMZ as MZ
 import qualified Data.Dynamic       as Dyn
 import qualified Control.Lens       as L
@@ -75,9 +74,19 @@ textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
                                      )
                     textEntryD
 
-list :: (s -> DocR e s l) -> NEL.NonEmpty s
-     -> DocR e (NEL.NonEmpty s) (NEL.NonEmpty l)
-list w = R.sequenceNEL2 D3.pair D3.mapBD . fmap w
+-- Just like sequence :: Applicative f => [f a] -> f [a]
+sequence2 :: (forall a b a' b'. f a a' -> f b b' -> f (a, b) (a', b'))
+          -> (forall a b a' b'. (a -> b) -> (a' -> b') -> f a a' -> f b b')
+          -> (forall a b. a -> b -> f a b)
+          -> [f c d]
+          -> f [c] [d]
+sequence2 _     _     bipure []     = bipure [] []
+sequence2 (***) bimap bipure (x:xs) = bimap (uncurry (:)) (uncurry (:))
+                                            (x *** sequence2 (***) bimap bipure xs)
+
+list :: (s -> DocR e s l) -> [s]
+     -> DocR e [s] [l]
+list w = sequence2 D3.pair D3.mapBD D3.bipure . fmap w
 
 main :: IO ()
 main = start hello
@@ -102,12 +111,12 @@ runWX widget initial = do
 
 hello :: IO ()
 hello = let widget = \(x1, y1) ->
-             ((,), \x y -> Column 1 [x, y])
-             `contains` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list button) x1)
-             `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1 `emitting` const ())
+             ((,), \x y -> Column 1 (map (Row 1) [x, y]))
+             `contains` (list button x1)
+             `also` (list textEntry y1 `emitting` const ())
 
-            initial = (mkButton "Hello" NEL.:| [mkButton "Something", mkButton "Else"],
-                       mkTextEntry "Foo" NEL.:| [])
+            initial = ([mkButton "Hello", mkButton "Something", mkButton "Else"],
+                       [mkTextEntry "Foo"])
 
             in runWX widget initial
 
