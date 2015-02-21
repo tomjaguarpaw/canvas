@@ -10,7 +10,6 @@ import           Focus              (Focus(NeedFocus, Don'tNeedFocus,
                                            WantFocus, Don'tWantFocus))
 import qualified Focus              as Focus
 import qualified Data.Monoid        as DM
-import qualified Control.Monad.Trans.Writer as W
 import qualified Control.Monad.Trans.State as S
 import qualified Data.Dynamic       as Dyn
 
@@ -20,7 +19,7 @@ data DocP f b d = DocP (US (f b, d))
 
 data DocF m f b d = Doc (DocP (ReadMessage m f) b d)
 
-type DocR a b d = DocF Message (W.Writer (DM.First a)) b d
+type DocR a b d = DocF Message (Focus a) b d
 type Doc a b d  = DocF D.Message (Focus a) b d
 
 data Void = Void !Void
@@ -34,19 +33,12 @@ mapDocP f (DocP u) = DocP (L.over (L.mapped.L._2) f u)
 mapResponseP :: Functor f => (b -> b') -> DocP f b d -> DocP f b' d
 mapResponseP f (DocP u) = DocP (L.over (L.mapped.L._1.L.mapped) f u)
 
-mapEvent :: (e -> e') -> Doc e b d -> Doc e' b d
+mapEvent :: (e -> e') -> DocF m (Focus e) b d -> DocF m (Focus e') b d
 mapEvent f (Doc (DocP us)) = Doc (DocP (L.over l f us))
   where l = (L.mapped.L._1.answer.Focus.attached)
 
-mapEventR :: (e -> e') -> DocR e b d -> DocR e' b d
-mapEventR f (Doc (DocP us)) = Doc (DocP (L.over l (W.mapWriter (L.over L._2 (\(DM.First w) -> DM.First (fmap f w)))) us))
-  where l = (L.mapped.L._1.answer)
-
-emitting :: Doc e b d -> (e -> e') -> Doc e' b d
+emitting :: DocF m (Focus e) b d -> (e -> e') -> DocF m (Focus e') b d
 emitting = flip mapEvent
-
-emittingR  :: DocR e b d -> (e -> e') -> DocR e' b d
-emittingR = flip mapEventR
 
 mapBehaviour :: Functor f => (b -> b') -> DocF m f b d -> DocF m f b' d
 mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))

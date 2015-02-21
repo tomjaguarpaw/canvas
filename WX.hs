@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
@@ -6,49 +7,66 @@ import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Graphics.UI.WX as WX
 import Data.IORef
 import qualified Doc                as D
-import           Doc3               (DocR, contains, also, emittingR)
+import           Doc3               (DocR, contains, also, emitting)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
-import qualified Control.Monad.Trans.Writer as W
-import qualified Data.Monoid        as DM
 import qualified Data.List.NonEmpty as NEL
 import qualified Radio              as R
 import qualified Graphics.UI.WXCore.WxcClassesMZ as MZ
 import qualified Data.Dynamic       as Dyn
+import qualified Control.Lens       as L
+import           Focus              (Focus(NeedFocus,
+                                           WantFocus, Don'tWantFocus))
+import qualified Focus              as Focus
 
-data Button = Button String
+data Button = Button { _bText    :: String
+                     , _bFocused :: Bool }
+$(L.makeLenses ''Button)
 
-data TextEntry = TextEntry String
+data TextEntry = TextEntry { _teText     :: String
+                           , _teFocused  :: Bool
+                           , _tePosition :: Int }
+$(L.makeLenses ''TextEntry)
 
 buttonD :: Button -> D.DocF D3.Message () Layout
-buttonD (Button t) = D.Doc $ do
+buttonD (Button t f) = D.Doc $ do
   n <- D.uniqueInt
-  return (ButtonL t n, parseMessage n)
+  return (ButtonL t f n, parseMessage n)
   where parseMessage n message = do
           let (mn, _) = message
           guard (n == mn)
 
 button :: Button -> DocR () Button Layout
-button = D3.makeDoc (\b -> \case Nothing -> return b
-                                 Just () -> do
-                                   W.tell (DM.First (Just ()))
-                                   return b)
+button = D3.makeDoc (\b -> \case Nothing -> if L.view bFocused b
+                                            then WantFocus b
+                                                 (L.set bFocused False b)
+                                            else Don'tWantFocus b
+                                 Just t  -> NeedFocus
+                                            t
+                                            (L.set bFocused True b)
+                                 )
                     buttonD
 
-textEntryD :: TextEntry -> D.DocF D3.Message String Layout
-textEntryD (TextEntry t) = D.Doc $ do
+textEntryD :: TextEntry -> D.DocF D3.Message (String, Int) Layout
+textEntryD (TextEntry t f p) = D.Doc $ do
   n <- D.uniqueInt
-  return (TextEntryL t n, parseMessage n)
+  return (TextEntryL t f p n, parseMessage n)
   where parseMessage n message = do
           let (mn, d) = message
           guard (n == mn)
           Dyn.fromDynamic d
 
-textEntry :: TextEntry -> DocR String TextEntry Layout
-textEntry = D3.makeDoc (\te -> \case Nothing -> return te
-                                     Just s -> do
-                                       W.tell (DM.First (Just s))
-                                       return te)
+textEntry :: TextEntry -> DocR (String, Int) TextEntry Layout
+textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
+                                                then WantFocus te
+                                                     (L.set teFocused False te)
+                                                else Don'tWantFocus te
+                                     Just s -> NeedFocus
+                                               s
+                                               ((L.set teFocused True
+                                                . L.set teText (fst s)
+                                                . L.set tePosition (snd s)) te)
+                                     )
                     textEntryD
 
 list :: (s -> DocR e s l) -> NEL.NonEmpty s
@@ -70,7 +88,7 @@ runWX widget initial = do
         (wipe, l) <- renderLayout handler f d
         set f [layout := l]
         writeIORef handler (\x -> do
-                               let (state', _) = W.runWriter (mab x)
+                               let state' = Focus.mostFocused (mab x)
                                wipe
                                loop state'
                                )
@@ -80,36 +98,42 @@ hello :: IO ()
 hello = let widget = \(x1, y1) ->
              ((,), \x y -> Column 1 [x, y])
              `contains` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list button) x1)
-             `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1 `emittingR` const ())
+             `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1 `emitting` const ())
 
-            initial = (Button "Hello" NEL.:| [Button "Something", Button "Else"],
-                      TextEntry "Foo" NEL.:| [])
+            initial = (Button "Hello" False NEL.:| [Button "Something" False, Button "Else" False],
+                      TextEntry "Foo" False 0 NEL.:| [])
 
             in runWX widget initial
 
-data Layout = ButtonL String Int
-            | TextEntryL String Int
+data Layout = ButtonL String Bool Int
+            | TextEntryL String Bool Int Int
             | Row Int [Layout]
             | Column Int [Layout]
 
 renderLayout :: IORef (D3.Message -> IO ()) -> Frame () -> Layout -> IO (IO (), WX.Layout)
-renderLayout handlerRef f (ButtonL t ht) = do
+renderLayout handlerRef f (ButtonL t focused ht) = do
   b <- WX.button f [text := t, on command := do
                        handler <- readIORef handlerRef
                        handler (ht, Dyn.toDyn ())
                    ]
-  MZ.windowSetFocus b
+  when focused (MZ.windowSetFocus b)
   return (set b [visible := False], WX.widget b)
 
-renderLayout handlerRef f (TextEntryL t ht) = do
+renderLayout handlerRef f (TextEntryL t focused p ht) = do
   b <- WX.textEntry f [text := t]
   set b [on anyKey := \k -> do
             oldText <- get b text
+            oldPosition <- MZ.textCtrlGetInsertionPoint b
             let newText = case k of KeyChar c -> oldText ++ [c]
                                     _         -> oldText
+            let newPosition = oldPosition + 1
+            print newPosition
+
             handler <- readIORef handlerRef
-            handler (ht, Dyn.toDyn newText)
+            handler (ht, Dyn.toDyn (newText, newPosition))
         ]
+  when focused (MZ.windowSetFocus b)
+  MZ.textCtrlSetInsertionPoint b p
   return (set b [visible := False], WX.widget b)
 
 renderLayout handlerRef f (Row i l) = do
