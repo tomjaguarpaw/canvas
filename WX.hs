@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
 import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
@@ -24,11 +26,10 @@ buttonD (Button t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 button :: Button -> DocR () Button Layout
-button = D3.makeDoc (\b -> ( (\message -> case message of
-                                              Nothing -> return b
-                                              Just () -> do
-                                                W.tell (DM.First (Just ()))
-                                                return b)))
+button = D3.makeDoc (\b -> \case Nothing -> return b
+                                 Just () -> do
+                                   W.tell (DM.First (Just ()))
+                                   return b)
                     buttonD
 
 textEntryD :: TextEntry -> D.Doc Layout ()
@@ -38,11 +39,10 @@ textEntryD (TextEntry t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 textEntry :: TextEntry -> DocR () TextEntry Layout
-textEntry = D3.makeDoc (\te  -> ( (\message -> case message of
-                                                  Nothing -> return te
-                                                  Just () -> do
-                                                    W.tell (DM.First (Just ()))
-                                                    return te)))
+textEntry = D3.makeDoc (\te -> \case Nothing -> return te
+                                     Just () -> do
+                                       W.tell (DM.First (Just ()))
+                                       return te)
                     textEntryD
 
 list :: (s -> DocR e s l) -> NEL.NonEmpty s
