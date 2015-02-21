@@ -24,7 +24,7 @@ buttonD (Button t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 button :: Button -> DocR () Button Layout
-button = D3.makeDoc (\b m -> (ReadMessage (\message -> case m message of
+button = D3.makeDoc (\b -> ( (\message -> case message of
                                               Nothing -> return b
                                               Just () -> do
                                                 W.tell (DM.First (Just ()))
@@ -38,7 +38,7 @@ textEntryD (TextEntry t) = D.Doc $ do
   where parseMessage n message = guard (message == n)
 
 textEntry :: TextEntry -> DocR () TextEntry Layout
-textEntry = D3.makeDoc (\te m -> (ReadMessage (\message -> case m message of
+textEntry = D3.makeDoc (\te  -> ( (\message -> case message of
                                                   Nothing -> return te
                                                   Just () -> do
                                                     W.tell (DM.First (Just ()))
