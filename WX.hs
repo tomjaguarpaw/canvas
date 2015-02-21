@@ -6,24 +6,27 @@ import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Graphics.UI.WX as WX
 import Data.IORef
 import qualified Doc                as D
-import           Doc3               (DocR, contains, also)
+import           Doc3               (DocR, contains, also, emittingR)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Control.Monad.Trans.Writer as W
 import qualified Data.Monoid        as DM
 import qualified Data.List.NonEmpty as NEL
 import qualified Radio              as R
-import qualified Data.Text.Lazy     as T
+import qualified Graphics.UI.WXCore.WxcClassesMZ as MZ
+import qualified Data.Dynamic       as Dyn
 
 data Button = Button String
 
 data TextEntry = TextEntry String
 
-buttonD :: Button -> D.Doc Layout ()
+buttonD :: Button -> D.DocF D3.Message () Layout
 buttonD (Button t) = D.Doc $ do
-  n <- D.unique
+  n <- D.uniqueInt
   return (ButtonL t n, parseMessage n)
-  where parseMessage n message = guard (message == n)
+  where parseMessage n message = do
+          let (mn, _) = message
+          guard (n == mn)
 
 button :: Button -> DocR () Button Layout
 button = D3.makeDoc (\b -> \case Nothing -> return b
@@ -32,16 +35,19 @@ button = D3.makeDoc (\b -> \case Nothing -> return b
                                    return b)
                     buttonD
 
-textEntryD :: TextEntry -> D.Doc Layout ()
+textEntryD :: TextEntry -> D.DocF D3.Message String Layout
 textEntryD (TextEntry t) = D.Doc $ do
-  n <- D.unique
+  n <- D.uniqueInt
   return (TextEntryL t n, parseMessage n)
-  where parseMessage n message = guard (message == n)
+  where parseMessage n message = do
+          let (mn, d) = message
+          guard (n == mn)
+          Dyn.fromDynamic d
 
-textEntry :: TextEntry -> DocR () TextEntry Layout
+textEntry :: TextEntry -> DocR String TextEntry Layout
 textEntry = D3.makeDoc (\te -> \case Nothing -> return te
-                                     Just () -> do
-                                       W.tell (DM.First (Just ()))
+                                     Just s -> do
+                                       W.tell (DM.First (Just s))
                                        return te)
                     textEntryD
 
@@ -74,31 +80,36 @@ hello :: IO ()
 hello = let widget = \(x1, y1) ->
              ((,), \x y -> Column 1 [x, y])
              `contains` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list button) x1)
-             `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1)
+             `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1 `emittingR` const ())
 
             initial = (Button "Hello" NEL.:| [Button "Something", Button "Else"],
                       TextEntry "Foo" NEL.:| [])
 
             in runWX widget initial
 
-data Layout = ButtonL String T.Text
-            | TextEntryL String T.Text
+data Layout = ButtonL String Int
+            | TextEntryL String Int
             | Row Int [Layout]
             | Column Int [Layout]
 
-renderLayout :: IORef (D.Message -> IO ()) -> Frame () -> Layout -> IO (IO (), WX.Layout)
+renderLayout :: IORef (D3.Message -> IO ()) -> Frame () -> Layout -> IO (IO (), WX.Layout)
 renderLayout handlerRef f (ButtonL t ht) = do
   b <- WX.button f [text := t, on command := do
                        handler <- readIORef handlerRef
-                       handler ht
+                       handler (ht, Dyn.toDyn ())
                    ]
+  MZ.windowSetFocus b
   return (set b [visible := False], WX.widget b)
 
 renderLayout handlerRef f (TextEntryL t ht) = do
-  b <- WX.textEntry f [text := t, on command := do
-                          handler <- readIORef handlerRef
-                          handler ht
-                      ]
+  b <- WX.textEntry f [text := t]
+  set b [on anyKey := \k -> do
+            oldText <- get b text
+            let newText = case k of KeyChar c -> oldText ++ [c]
+                                    _         -> oldText
+            handler <- readIORef handlerRef
+            handler (ht, Dyn.toDyn newText)
+        ]
   return (set b [visible := False], WX.widget b)
 
 renderLayout handlerRef f (Row i l) = do

@@ -12,33 +12,37 @@ import qualified Control.Lens       as L
 
 type Message = T.Text
 
-data DocF a d = Doc { unDoc :: US (d, Message -> Maybe a) }
-
-type Doc d a = DocF a d
+data DocF m a d = Doc { unDoc :: US (d, m -> Maybe a) }
+type Doc d a = DocF Message a d
 
 type US = St.State Int
 
 runUS :: US a -> a
 runUS = flip St.evalState 0
 
-unique :: US T.Text
-unique = do
+uniqueInt :: US Int
+uniqueInt = do
   i <- St.get
   St.modify (+1)
+  return i
+
+unique :: US T.Text
+unique = do
+  i <- uniqueInt
   (return . T.pack . show) i
 
-instance Functor (DocF a) where
+instance Functor (DocF m a) where
   fmap = mapDoc
 
-instance Applicative (DocF a) where
+instance Applicative (DocF m a) where
   pure x = Doc (pure (x, const Nothing))
   Doc tf <*> Doc tt = Doc (liftA2 (<**>) tf tt)
     where (df, ff) <**> (dx, fx) = (df dx, liftA2 firstJust ff fx)
 
-mapDoc :: (a -> b) -> DocF e a -> DocF e b
+mapDoc :: (a -> b) -> DocF m e a -> DocF m e b
 mapDoc f (Doc t) = Doc (L.over (L.mapped.L._1) f t)
 
-mapWidgetDoc :: (a -> b) -> (r -> DocF e a) -> (r -> DocF e b)
+mapWidgetDoc :: (a -> b) -> (r -> DocF m e a) -> (r -> DocF m e b)
 mapWidgetDoc = fmap . mapDoc
 
 fmapResponse :: (a -> b) -> Doc d a -> Doc d b
@@ -47,7 +51,7 @@ fmapResponse f (Doc t) = Doc (L.over (L.mapped.L._2.L.mapped.L.mapped) f t)
 fmapNewState :: (a -> b) -> Doc d (e, a) -> Doc d (e, b)
 fmapNewState = fmapResponse . L.over L._2
 
-static :: a -> DocF e ()
+static :: a -> DocF m e ()
 static = const (pure ())
 
 firstJust :: Maybe a -> Maybe a -> Maybe a
