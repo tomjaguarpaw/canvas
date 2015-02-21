@@ -12,8 +12,7 @@ import qualified Radio              as R
 import           Control.Monad      (guard)
 import qualified Data.List.NonEmpty as NEL
 import           Text.Read          (readMaybe)
-import           Doc3               (DocF(Doc), DocP(DocP), Doc,
-                                     ReadMessage(ReadMessage))
+import           Doc3               (Doc, makeDoc)
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 
@@ -62,18 +61,13 @@ select b = D.Doc $ do
                                     _ -> Nothing
 
 selectC :: Select a -> Doc (SelectEvent a) (Select a) [H.Element]
-selectC se = (Doc
-                 . DocP
-                 . fmap (\(d, m) ->
-                          (ReadMessage (\message -> case m message of
-                                           Nothing -> if L.view sFocused se
-                                                      then WantFocus se
-                                                           (L.set sFocused False se)
-                                                      else Don'tWantFocus se
-                                           Just seev -> NeedFocus
-                                                        seev
-                                                        (selectHandle
-                                                         seev se)
-                                       ), d))
-                 . D.unDoc
-                 . select) se
+selectC = makeDoc (\se -> \case Nothing -> if L.view sFocused se
+                                           then WantFocus se
+                                                (L.set sFocused False se)
+                                           else Don'tWantFocus se
+                                Just seev -> NeedFocus
+                                             seev
+                                             (selectHandle
+                                              seev se)
+                                       )
+                  select

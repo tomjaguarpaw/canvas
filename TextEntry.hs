@@ -9,8 +9,7 @@ module TextEntry where
 import qualified Data.Text.Lazy     as T
 import qualified Control.Lens       as L
 import qualified Doc                as D
-import           Doc3               (DocF(Doc), DocP(DocP), Doc,
-                                     ReadMessage(ReadMessage))
+import           Doc3               (Doc, makeDoc)
 import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 import qualified Html               as H
@@ -56,18 +55,12 @@ textEntry b = D.Doc $ do
                                     _ -> Nothing
 
 textEntryC :: TextEntry -> Doc TextEntryEvent TextEntry [H.Element]
-textEntryC te = (Doc
-                 . DocP
-                 . fmap (\(d, m) ->
-                          (ReadMessage (\message -> case m message of
-                                           Nothing -> if L.view tFocused te
-                                                      then WantFocus te
-                                                           (L.set tFocused False te)
-                                                      else Don'tWantFocus te
-                                           Just teev -> NeedFocus
-                                                        teev
-                                                        (textEntryHandle
-                                                         teev te)
-                                       ), d))
-                 . D.unDoc
-                 . textEntry) te
+textEntryC = makeDoc (\te -> \case Nothing -> if L.view tFocused te
+                                              then WantFocus te
+                                                   (L.set tFocused False te)
+                                              else Don'tWantFocus te
+                                   Just teev -> NeedFocus
+                                                teev
+                                                (textEntryHandle
+                                                 teev te))
+                     textEntry
