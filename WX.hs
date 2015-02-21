@@ -58,35 +58,34 @@ list w = R.sequenceNEL2 D3.pair D3.mapBD . fmap w
 main :: IO ()
 main = start hello
 
+runWX :: (t -> DocR t1 t Layout) -> t -> IO ()
+runWX widget initial = do
+  f <- frame    [text := "Hello!"]
+  handler <- newIORef (\_ -> close f)
+
+  let loop state = do
+        let D3.Doc (D3.DocP u) = widget state
+            (D3.ReadMessage mab, d) = D.runUS u
+
+        (wipe, l) <- renderLayout handler f d
+        set f [layout := l]
+        writeIORef handler (\x -> do
+                               let (state', _) = W.runWriter (mab x)
+                               wipe
+                               loop state'
+                               )
+  loop initial
+
 hello :: IO ()
-hello
-  = do f <- frame    [text := "Hello!"]
-
-       handler <- newIORef (\_ -> close f)
-
-       let widget = \(x1, y1) ->
+hello = let widget = \(x1, y1) ->
              ((,), \x y -> Column 1 [x, y])
              `contains` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list button) x1)
              `also` (fmap (D3.mapDoc (Row 1 . NEL.toList)) (list textEntry) y1)
 
-           initial = (Button "Hello" NEL.:| [Button "Something", Button "Else"],
+            initial = (Button "Hello" NEL.:| [Button "Something", Button "Else"],
                       TextEntry "Foo" NEL.:| [])
 
-       let loop state = do
-             let D3.Doc (D3.DocP u) = widget state
-                 (D3.ReadMessage mab, d) = D.runUS u
-
-             (wipe, l) <- renderLayout handler f d
-             set f [layout := l]
-             writeIORef handler (\x -> do
-                                    let (state', _) = W.runWriter (mab x)
-                                    wipe
-                                    loop state'
-                                )
-
-       loop initial
-
-       return ()
+            in runWX widget initial
 
 data Layout = ButtonL String T.Text
             | TextEntryL String T.Text
