@@ -6,7 +6,7 @@ import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Graphics.UI.WX as WX
 import Data.IORef
 import qualified Doc                as D
-import           Doc3               (DocR, ReadMessage(ReadMessage), contains, also)
+import           Doc3               (DocR, contains, also)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Control.Monad.Trans.Writer as W
