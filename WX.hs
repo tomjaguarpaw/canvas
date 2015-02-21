@@ -111,35 +111,36 @@ data Layout = ButtonL String Bool Int
             | Column Int [Layout]
 
 renderLayout :: IORef (D3.Message -> IO ()) -> Frame () -> Layout -> IO (IO (), WX.Layout)
-renderLayout handlerRef f (ButtonL t focused ht) = do
-  b <- WX.button f [text := t, on command := do
-                       handler <- readIORef handlerRef
-                       handler (ht, Dyn.toDyn ())
-                   ]
-  when focused (MZ.windowSetFocus b)
-  return (set b [visible := False], WX.widget b)
+renderLayout handlerRef f = \case
+  ButtonL t focused ht -> do
+    b <- WX.button f [text := t, on command := do
+                         handler <- readIORef handlerRef
+                         handler (ht, Dyn.toDyn ())
+                     ]
+    when focused (MZ.windowSetFocus b)
+    return (set b [visible := False], WX.widget b)
 
-renderLayout handlerRef f (TextEntryL t focused p ht) = do
-  b <- WX.textEntry f [text := t]
-  set b [on anyKey := \k -> do
-            oldText <- get b text
-            oldPosition <- MZ.textCtrlGetInsertionPoint b
-            let newText = case k of KeyChar c -> oldText ++ [c]
-                                    _         -> oldText
-            let newPosition = oldPosition + 1
-            print newPosition
+  TextEntryL t focused p ht ->  do
+    b <- WX.textEntry f [text := t]
+    set b [on anyKey := \k -> do
+              oldText <- get b text
+              oldPosition <- MZ.textCtrlGetInsertionPoint b
+              let newText = case k of KeyChar c -> oldText ++ [c]
+                                      _         -> oldText
+              let newPosition = oldPosition + 1
+              print newPosition
+              
+              handler <- readIORef handlerRef
+              handler (ht, Dyn.toDyn (newText, newPosition))
+          ]
+    when focused (MZ.windowSetFocus b)
+    MZ.textCtrlSetInsertionPoint b p
+    return (set b [visible := False], WX.widget b)
 
-            handler <- readIORef handlerRef
-            handler (ht, Dyn.toDyn (newText, newPosition))
-        ]
-  when focused (MZ.windowSetFocus b)
-  MZ.textCtrlSetInsertionPoint b p
-  return (set b [visible := False], WX.widget b)
+  Row i l -> do
+    ls <- mapM (renderLayout handlerRef f) l
+    return ((mapM_ fst) ls, row i (map snd ls))
 
-renderLayout handlerRef f (Row i l) = do
-  ls <- mapM (renderLayout handlerRef f) l
-  return ((mapM_ fst) ls, row i (map snd ls))
-
-renderLayout handlerRef f (Column i l) = do
-  ls <- mapM (renderLayout handlerRef f) l
-  return ((mapM_ fst) ls, column i (map snd ls))
+  Column i l -> do
+    ls <- mapM (renderLayout handlerRef f) l
+    return ((mapM_ fst) ls, column i (map snd ls))
