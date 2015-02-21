@@ -102,4 +102,5 @@ handle l f = handleEvent (\e b -> case e L.^? l of
                              Just m  -> S.execState (f m) b
                              Nothing -> b)
 
+makeDoc :: (s -> Maybe s' -> f s'') -> (s -> D.DocF s' d) -> s -> DocF f s'' d
 makeDoc f w s = (Doc . DocP . fmap (\(d, m) -> (ReadMessage (f s . m), d)) . D.unDoc . w) s
