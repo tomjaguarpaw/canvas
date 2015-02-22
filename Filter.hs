@@ -11,8 +11,8 @@ import qualified Radio              as R
 import qualified Control.Lens       as L
 import           Control.Lens       ((.=), (%=))
 import qualified Html               as H
-import           Doc3               (Doc, emitting, contains, also,
-                                     handle, absurd, static)
+import           Doc3               (Doc, emitting, handle, absurd, static,
+                                     ($$$), (***))
 
 data Filter = Filter { _fAvailable  :: R.Radio DT.Text DT.Text
                      , _fFilter     :: T.TextEntry
@@ -61,8 +61,8 @@ filterC = handle _EditorEvent
           . filterA
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
-filterA (Filter available textFilter textSelect) =
+filterA =
   ((Filter, \_ -> (++))
-   `contains` ((static `emitting` absurd) available)
-   `also` ((T.textEntryC `emitting` FilterEvent) textFilter)
-   `also` ((TS.textSelectC `emitting` either EditorEvent SelectEvent) textSelect))
+   $$$ ((static . _fAvailable) `emitting` absurd)
+   *** ((T.textEntryC . _fFilter) `emitting` FilterEvent)
+   *** ((TS.textSelectC . _fTextSelect) `emitting` either EditorEvent SelectEvent))
