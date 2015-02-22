@@ -74,18 +74,15 @@ textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
                     textEntryD
 
 -- Just like sequence :: Applicative f => [f a] -> f [a]
-sequence2 :: (forall a b a' b'. f a a' -> f b b' -> f (a, b) (a', b'))
-          -> (forall a b a' b'. (a -> b) -> (a' -> b') -> f a a' -> f b b')
-          -> (forall a b. a -> b -> f a b)
-          -> [f c d]
-          -> f [c] [d]
-sequence2 _     _     bipure []     = bipure [] []
-sequence2 (***) bimap bipure (x:xs) = bimap (uncurry (:)) (uncurry (:))
-                                            (x *** sequence2 (***) bimap bipure xs)
+sequence2 :: Bi.Biapplicative f => [f c d] -> f [c] [d]
+sequence2 []     = Bi.bipure [] []
+sequence2 (x:xs) = Bi.bimap (:) (:)
+                   x
+                   Bi.<<*>> sequence2 xs
 
 list :: (state -> DocR event state gui) -> [state]
      -> DocR event [state] [gui]
-list w = sequence2 D3.pair D3.mapBD D3.bipure . fmap w
+list w = sequence2 . fmap w
 
 tuple2 :: Bi.Biapplicative f =>
           (doc1 -> doc2 -> doc)
