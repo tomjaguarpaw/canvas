@@ -4,7 +4,6 @@
 
 module Main where
 
-import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Doc                as D
 import           Doc3               (DocR, emitting, ($$$), (***))
 import qualified Doc3               as D3
@@ -83,19 +82,14 @@ list :: (state -> DocR event state' gui) -> [state]
         -> DocR event [state'] [gui]
 list = traverseList
 
-main :: IO ()
-main = start hello
-
 exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
 exampleGUI = ((,), \x y -> Column 1 (map (Row 1) [x, y]))
              $$$ (list button . fst)
              *** ((list textEntry . snd) `emitting` const ())
 
 
-hello :: IO ()
-hello = let widget = exampleGUI
-
-            initial = ([mkButton "Hello", mkButton "Something", mkButton "Else"],
-                       [mkTextEntry "Foo"])
-
-            in runWX widget initial
+main :: IO ()
+main = runWX gui initialState where
+  gui          = exampleGUI
+  initialState =  ([mkButton "Hello", mkButton "Something", mkButton "Else"],
+                   [mkTextEntry "Foo"])
