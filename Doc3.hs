@@ -37,6 +37,15 @@ instance  BiA.Biapplicative (DocF m (Focus e)) where
 (<<$>>) :: BiF.Bifunctor f => (a -> a', b -> b') -> f a b -> f a' b'
 (<<$>>) = uncurry BiF.bimap
 
+($$$) :: BiF.Bifunctor f =>
+         (a -> a', b -> b') -> (t -> f a b) -> t -> f a' b'
+(f, g) $$$ w = \x -> (f, g) <<$>> w x
+
+(***) :: BiA.Biapplicative f =>
+         (s -> f (a -> a') (b -> b'))
+         -> (s -> f a b)
+         -> s -> f a' b'
+w1 *** w2 = \x -> w1 x BiA.<<*>> w2 x
 
 absurd :: Void -> a
 absurd (Void v) = absurd v

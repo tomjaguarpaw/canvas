@@ -6,7 +6,7 @@ module Main where
 
 import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Doc                as D
-import           Doc3               (DocR, emitting)
+import           Doc3               (DocR, emitting, ($$$), (***))
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Data.Dynamic       as Dyn
@@ -95,16 +95,6 @@ tuple2 :: Bi.Biapplicative f =>
 tuple2 d (w1, w2) = ((,), d)
                     $$$ (w1 . fst)
                     *** (w2 . snd)
-
-($$$) :: Bi.Bifunctor f =>
-         (a -> a', b -> b') -> (t -> f a b) -> t -> f a' b'
-(f, g) $$$ w = \x -> (f, g) D3.<<$>> w x
-
-(***) :: Bi.Biapplicative f =>
-         (s -> f (a -> a') (b -> b'))
-         -> (s -> f a b)
-         -> s -> f a' b'
-w1 *** w2 = \x -> w1 x Bi.<<*>> w2 x
 
 main :: IO ()
 main = start hello
