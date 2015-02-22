@@ -80,8 +80,8 @@ sequence2 (x:xs) = Bi.bimap (:) (:)
                    x
                    Bi.<<*>> sequence2 xs
 
-list :: (state -> DocR event state gui) -> [state]
-     -> DocR event [state] [gui]
+list :: (state -> DocR event state' gui) -> [state]
+             -> DocR event [state'] [gui]
 list w = sequence2 . fmap w
 
 tuple2 :: Bi.Biapplicative f =>
