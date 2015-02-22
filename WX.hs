@@ -91,7 +91,7 @@ list w = sequence2 D3.pair D3.mapBD D3.bipure . fmap w
 main :: IO ()
 main = start hello
 
-runWX :: (t -> DocR t1 t Layout) -> t -> IO ()
+runWX :: (state -> DocR ev state Layout) -> state -> IO ()
 runWX widget initial = do
   f <- frame [text := "Hello!"]
   handler <- newIORef (\_ -> close f)
