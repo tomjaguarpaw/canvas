@@ -92,9 +92,19 @@ tuple2 :: Bi.Biapplicative f =>
           -> (state1 -> f state1' doc1,
               state2 -> f state2' doc2)
           -> (state1, state2) -> f (state1', state2') doc
-tuple2 d (w1, w2) (state1, state2) = ((,), d)
-                                     D3.<<$>> w1 state1
-                                     Bi.<<*>> w2 state2
+tuple2 d (w1, w2) = ((,), d)
+                    $$$ (w1 . fst)
+                    *** (w2 . snd)
+
+($$$) :: Bi.Bifunctor f =>
+         (a -> a', b -> b') -> (t -> f a b) -> t -> f a' b'
+(f, g) $$$ w = \x -> (f, g) D3.<<$>> w x
+
+(***) :: Bi.Biapplicative f =>
+         (s -> f (a -> a') (b -> b'))
+         -> (s -> f a b)
+         -> s -> f a' b'
+w1 *** w2 = \x -> w1 x Bi.<<*>> w2 x
 
 main :: IO ()
 main = start hello
