@@ -83,21 +83,13 @@ list :: (state -> DocR event state' gui) -> [state]
         -> DocR event [state'] [gui]
 list = traverseList
 
-tuple2 :: Bi.Biapplicative f =>
-          (doc1 -> doc2 -> doc)
-          -> (state1 -> f state1' doc1,
-              state2 -> f state2' doc2)
-          -> (state1, state2) -> f (state1', state2') doc
-tuple2 d (w1, w2) = ((,), d)
-                    $$$ (w1 . fst)
-                    *** (w2 . snd)
-
 main :: IO ()
 main = start hello
 
 exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
-exampleGUI = tuple2 (\x y -> Column 1 (map (Row 1) [x, y]))
-             (list button, list textEntry `emitting` const ())
+exampleGUI = ((,), \x y -> Column 1 (map (Row 1) [x, y]))
+             $$$ (list button . fst)
+             *** ((list textEntry . snd) `emitting` const ())
 
 
 hello :: IO ()
