@@ -6,7 +6,7 @@ module Main where
 
 import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Doc                as D
-import           Doc3               (DocR, contains, also, emitting)
+import           Doc3               (DocR, contains, also, emitting')
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Data.Dynamic       as Dyn
@@ -15,6 +15,7 @@ import           Focus              (Focus(NeedFocus,
                                            WantFocus, Don'tWantFocus))
 import           WXRender           (Layout, runWX, Layout(Column, Row))
 import qualified WXRender           as WXR
+import qualified Data.Biapplicative as Bi
 
 data Button = Button { _bText    :: String
                      , _bFocused :: Bool }
@@ -99,7 +100,7 @@ main = start hello
 
 exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
 exampleGUI = tuple2 (\x y -> Column 1 (map (Row 1) [x, y]))
-             (list button, \y1 -> list textEntry y1 `emitting` const ())
+             (list button, list textEntry `emitting'` const ())
 
 
 hello :: IO ()

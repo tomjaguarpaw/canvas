@@ -29,5 +29,5 @@ textSelectC t = (handle L._Left (\_ -> do
                                     tsText.T.tText .= newText
                                     tsText.T.tPosition .= newLength))
                 ((TextSelect, (++))
-                 `contains` (T.textEntryC (_tsText t) `emitting` Left)
-                 `also` (S.selectC (_tsSelect t) `emitting` Right))
+                 `contains` ((T.textEntryC `emitting` Left) (_tsText t))
+                 `also` ((S.selectC `emitting` Right)) (_tsSelect t))

@@ -37,8 +37,9 @@ mapEvent :: (e -> e') -> DocF m (Focus e) b d -> DocF m (Focus e') b d
 mapEvent f (Doc (DocP us)) = Doc (DocP (L.over l f us))
   where l = (L.mapped.L._1.answer.Focus.attached)
 
-emitting :: DocF m (Focus e) b d -> (e -> e') -> DocF m (Focus e') b d
-emitting = flip mapEvent
+emitting :: (b' -> DocF m (Focus e) b d) -> (e -> e')
+         -> b' -> DocF m (Focus e') b d
+emitting w f b = mapEvent f (w b)
 
 mapBehaviour :: Functor f => (b -> b') -> DocF m f b d -> DocF m f b' d
 mapBehaviour f (Doc (DocP us)) = Doc (DocP (L.over (L.mapped.L._1.L.mapped) f us))
