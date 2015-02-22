@@ -62,7 +62,7 @@ filterC = handle _EditorEvent
 
 filterA :: Filter -> Doc FilterEvent Filter [H.Element]
 filterA =
-  ((Filter, \_ -> (++))
+   (Filter, \_ -> (++))
    $$$ ((static . _fAvailable) `emitting` absurd)
    *** ((T.textEntryC . _fFilter) `emitting` FilterEvent)
-   *** ((TS.textSelectC . _fTextSelect) `emitting` either EditorEvent SelectEvent))
+   *** ((TS.textSelectC . _fTextSelect) `emitting` either EditorEvent SelectEvent)
