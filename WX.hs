@@ -16,6 +16,7 @@ import           Focus              (Focus(NeedFocus,
 import           WXRender           (Layout, runWX, Layout(Column, Row))
 import qualified WXRender           as WXR
 import qualified Data.Biapplicative as Bi
+import qualified Bisequence         as BiS
 
 data Button = Button { _bText    :: String
                      , _bFocused :: Bool }
@@ -73,16 +74,14 @@ textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
                                      )
                     textEntryD
 
--- Just like sequence :: Applicative f => [f a] -> f [a]
-sequence2 :: Bi.Biapplicative f => [f c d] -> f [c] [d]
-sequence2 []     = Bi.bipure [] []
-sequence2 (x:xs) = Bi.bimap (:) (:)
-                   x
-                   Bi.<<*>> sequence2 xs
+traverseList :: Bi.Biapplicative f
+             => (a -> f b c)
+             -> [a] -> f [b] [c]
+traverseList w = BiS.biSequence . fmap w
 
 list :: (state -> DocR event state' gui) -> [state]
-             -> DocR event [state'] [gui]
-list w = sequence2 . fmap w
+        -> DocR event [state'] [gui]
+list = traverseList
 
 tuple2 :: Bi.Biapplicative f =>
           (doc1 -> doc2 -> doc)
