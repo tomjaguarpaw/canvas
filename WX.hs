@@ -94,7 +94,7 @@ main = start hello
 runWX :: (state -> DocR ev state Layout) -> state -> IO ()
 runWX widget initial = do
   f <- frame [text := "Hello!"]
-  handler <- newIORef (\_ -> close f)
+  handler <- newIORef (\_ -> return ())
 
   let loop state = do
         let D3.Doc (D3.DocP u) = widget state
