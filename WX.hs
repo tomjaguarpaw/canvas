@@ -87,21 +87,23 @@ list :: (state -> DocR event state gui) -> [state]
 list w = sequence2 D3.pair D3.mapBD D3.bipure . fmap w
 
 tuple2 :: (doc1 -> doc2 -> doc)
-          -> (state1 -> DocR event state1' doc1)
-          -> (state2 -> DocR event state2' doc2)
+          -> (state1 -> DocR event state1' doc1,
+              state2 -> DocR event state2' doc2)
           -> (state1, state2) -> DocR event (state1', state2') doc
-tuple2 d w1 w2 (state1, state2) = ((,), d)
-                                  `contains` w1 state1
-                                  `also`     w2 state2
+tuple2 d (w1, w2) (state1, state2) = ((,), d)
+                                     `contains` w1 state1
+                                     `also`     w2 state2
 
 main :: IO ()
 main = start hello
 
+exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
+exampleGUI = tuple2 (\x y -> Column 1 (map (Row 1) [x, y]))
+             (list button, \y1 -> list textEntry y1 `emitting` const ())
+
+
 hello :: IO ()
-hello = let widget = \(x1, y1) ->
-             ((,), \x y -> Column 1 (map (Row 1) [x, y]))
-             `contains` (list button x1)
-             `also` (list textEntry y1 `emitting` const ())
+hello = let widget = exampleGUI
 
             initial = ([mkButton "Hello", mkButton "Something", mkButton "Else"],
                        [mkTextEntry "Foo"])
