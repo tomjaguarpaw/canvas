@@ -52,11 +52,14 @@ renderLayout handlerRef f = \case
     set b [on anyKey := \k -> do
               oldText <- get b text
               oldPosition <- MZ.textCtrlGetInsertionPoint b
-              let newText = case k of KeyChar c -> oldText ++ [c]
-                                      _         -> oldText
-              let newPosition = oldPosition + 1
-              print newPosition
-
+              let (newText, newPosition) = case k of
+                    KeyChar c -> (oldText ++ [c], oldPosition + 1)
+                    KeySpace  -> (oldText ++ " ", oldPosition + 1)
+                    KeyBack   -> if oldPosition == 0
+                                 then (oldText, oldPosition)
+                                 else (let (a, b) = splitAt oldPosition oldText
+                                       in init a ++ b, oldPosition - 1)
+                    _         -> (oldText, oldPosition)
               handler <- readIORef handlerRef
               handler (ht, Dyn.toDyn (newText, newPosition))
           ]
