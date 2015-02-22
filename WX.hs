@@ -6,7 +6,7 @@ module Main where
 
 import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Doc                as D
-import           Doc3               (DocR, contains, also, emitting)
+import           Doc3               (DocR, emitting)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Data.Dynamic       as Dyn
@@ -87,13 +87,14 @@ list :: (state -> DocR event state gui) -> [state]
      -> DocR event [state] [gui]
 list w = sequence2 D3.pair D3.mapBD D3.bipure . fmap w
 
-tuple2 :: (doc1 -> doc2 -> doc)
-          -> (state1 -> DocR event state1' doc1,
-              state2 -> DocR event state2' doc2)
-          -> (state1, state2) -> DocR event (state1', state2') doc
+tuple2 :: Bi.Biapplicative f =>
+          (doc1 -> doc2 -> doc)
+          -> (state1 -> f state1' doc1,
+              state2 -> f state2' doc2)
+          -> (state1, state2) -> f (state1', state2') doc
 tuple2 d (w1, w2) (state1, state2) = ((,), d)
-                                     `contains` w1 state1
-                                     `also`     w2 state2
+                                     D3.<<$>> w1 state1
+                                     Bi.<<*>> w2 state2
 
 main :: IO ()
 main = start hello

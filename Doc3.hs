@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Doc3 where
 
@@ -12,6 +13,8 @@ import qualified Focus              as Focus
 import qualified Data.Monoid        as DM
 import qualified Control.Monad.Trans.State as S
 import qualified Data.Dynamic       as Dyn
+import qualified Data.Bifunctor     as BiF
+import qualified Data.Biapplicative as BiA
 
 type Message = (Int, Dyn.Dynamic)
 
@@ -23,6 +26,17 @@ type DocR a b d = DocF Message (Focus a) b d
 type Doc a b d  = DocF D.Message (Focus a) b d
 
 data Void = Void !Void
+
+instance Functor f => BiF.Bifunctor (DocF m f) where
+  bimap = mapBD
+
+instance  BiA.Biapplicative (DocF m (Focus e)) where
+  bipure = bipure
+  f <<*>> x = BiF.bimap (uncurry ($)) (uncurry ($)) (pair f x)
+
+(<<$>>) :: BiF.Bifunctor f => (a -> a', b -> b') -> f a b -> f a' b'
+(<<$>>) = uncurry BiF.bimap
+
 
 absurd :: Void -> a
 absurd (Void v) = absurd v
