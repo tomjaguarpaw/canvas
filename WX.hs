@@ -17,6 +17,8 @@ import qualified WXRender           as WXR
 import qualified Data.Biapplicative as Bi
 import qualified Bisequence         as BiS
 
+-- State for the GUI elements
+
 data Button = Button { _bText    :: String
                      , _bFocused :: Bool }
 $(L.makeLenses ''Button)
@@ -26,6 +28,16 @@ data TextEntry = TextEntry { _teText     :: String
                            , _tePosition :: Int }
 $(L.makeLenses ''TextEntry)
 
+-- Make GUI elements
+
+mkButton :: String -> Button
+mkButton = flip Button False
+
+mkTextEntry :: String -> TextEntry
+mkTextEntry s = TextEntry s False 0
+
+-- Core event handling for GUI elements
+
 buttonD :: Button -> D.DocF D3.Message () Layout
 buttonD (Button t f) = D.Doc $ do
   n <- D.uniqueInt
@@ -34,11 +46,16 @@ buttonD (Button t f) = D.Doc $ do
           let (mn, _) = message
           guard (n == mn)
 
-mkButton :: String -> Button
-mkButton = flip Button False
+textEntryD :: TextEntry -> D.DocF D3.Message (String, Int) Layout
+textEntryD (TextEntry t f p) = D.Doc $ do
+  n <- D.uniqueInt
+  return (WXR.TextEntryL t f p n, parseMessage n)
+  where parseMessage n message = do
+          let (mn, d) = message
+          guard (n == mn)
+          Dyn.fromDynamic d
 
-mkTextEntry :: String -> TextEntry
-mkTextEntry s = TextEntry s False 0
+-- State processing for GUI elements
 
 button :: Button -> DocR () Button Layout
 button = D3.makeDoc (\b -> \case Nothing -> if L.view bFocused b
@@ -50,15 +67,6 @@ button = D3.makeDoc (\b -> \case Nothing -> if L.view bFocused b
                                             (L.set bFocused True b)
                                  )
                     buttonD
-
-textEntryD :: TextEntry -> D.DocF D3.Message (String, Int) Layout
-textEntryD (TextEntry t f p) = D.Doc $ do
-  n <- D.uniqueInt
-  return (WXR.TextEntryL t f p n, parseMessage n)
-  where parseMessage n message = do
-          let (mn, d) = message
-          guard (n == mn)
-          Dyn.fromDynamic d
 
 textEntry :: TextEntry -> DocR (String, Int) TextEntry Layout
 textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
@@ -73,6 +81,8 @@ textEntry = D3.makeDoc (\te -> \case Nothing -> if L.view teFocused te
                                      )
                     textEntryD
 
+-- Example of how to combine GUI elements.  Here is a list.
+
 traverseList :: Bi.Biapplicative f
              => (a -> f b c)
              -> [a] -> f [b] [c]
@@ -82,11 +92,12 @@ list :: (state -> DocR event state' gui) -> [state]
         -> DocR event [state'] [gui]
 list = traverseList
 
+-- Run an example GUI
+
 exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
 exampleGUI = ((,), \x y -> Column 1 (map (Row 1) [x, y]))
              $$$ (list button . fst)
              *** ((list textEntry . snd) `emitting` const ())
-
 
 main :: IO ()
 main = runWX gui initialState where
