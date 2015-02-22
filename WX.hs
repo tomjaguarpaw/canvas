@@ -6,7 +6,7 @@ module Main where
 
 import Graphics.UI.WX hiding (Layout, Button, button, widget, textEntry)
 import qualified Doc                as D
-import           Doc3               (DocR, contains, also, emitting')
+import           Doc3               (DocR, contains, also, emitting)
 import qualified Doc3               as D3
 import           Control.Monad      (guard)
 import qualified Data.Dynamic       as Dyn
@@ -100,7 +100,7 @@ main = start hello
 
 exampleGUI :: ([Button], [TextEntry]) -> DocR () ([Button], [TextEntry]) Layout
 exampleGUI = tuple2 (\x y -> Column 1 (map (Row 1) [x, y]))
-             (list button, list textEntry `emitting'` const ())
+             (list button, list textEntry `emitting` const ())
 
 
 hello :: IO ()
