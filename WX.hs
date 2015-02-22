@@ -144,7 +144,7 @@ renderLayout handlerRef f = \case
                                       _         -> oldText
               let newPosition = oldPosition + 1
               print newPosition
-              
+
               handler <- readIORef handlerRef
               handler (ht, Dyn.toDyn (newText, newPosition))
           ]
